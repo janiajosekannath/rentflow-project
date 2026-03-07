@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentFlow — Equipment Rental System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a26;
+    --border: #2a2a3a;
+    --border2: #3a3a50;
+    --accent: #6c63ff;
+    --accent2: #ff6b9d;
+    --accent3: #00d4aa;
+    --text: #e8e8f0;
+    --text2: #9090aa;
+    --text3: #5a5a70;
+    --success: #00d4aa;
+    --warning: #ffbe45;
+    --danger: #ff4d6a;
+    --card: #13131f;
+    --radius: 12px;
+    --radius2: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100;
+  }
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 2px; text-transform: uppercase; margin-top: 2px;
+  }
+  .nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .nav-section { margin-bottom: 20px; }
+  .nav-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; color: var(--text3);
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 0 8px; margin-bottom: 6px;
+  }
+  .nav-btn {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 10px 12px;
+    background: none; border: none; border-radius: var(--radius2);
+    color: var(--text2); cursor: pointer;
+    font-size: 13.5px; font-family: 'Inter', sans-serif;
+    transition: all 0.15s; text-align: left;
+  }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text3);
+  }
+
+  /* MAIN */
+  .main { margin-left: 240px; padding: 32px; min-height: 100vh; }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+  /* HEADERS */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .page-subtitle { color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+  /* DASHBOARD STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .stat-card.blue::before { background: var(--accent); }
+  .stat-card.pink::before { background: var(--accent2); }
+  .stat-card.green::before { background: var(--accent3); }
+  .stat-card.orange::before { background: var(--warning); }
+  .stat-icon { font-size: 28px; margin-bottom: 10px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; }
+  .stat-label { color: var(--text2); font-size: 12px; margin-top: 4px; }
+
+  /* TABLES */
+  .table-wrapper {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .table-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius2); padding: 8px 14px; flex: 1; max-width: 320px;
+  }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-size: 13px; width: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text3); padding: 12px 16px;
+    text-align: left; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td {
+    padding: 13px 16px; font-size: 13.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  .empty-row td { text-align: center; color: var(--text3); padding: 40px; font-style: italic; }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace;
+  }
+  .badge-green { background: rgba(0,212,170,0.15); color: var(--success); }
+  .badge-red { background: rgba(255,77,106,0.15); color: var(--danger); }
+  .badge-yellow { background: rgba(255,190,69,0.15); color: var(--warning); }
+  .badge-blue { background: rgba(108,99,255,0.15); color: var(--accent); }
+  .badge-gray { background: rgba(90,90,112,0.2); color: var(--text2); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; border-radius: var(--radius2);
+    border: none; cursor: pointer; font-size: 13px;
+    font-family: 'Inter', sans-serif; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent); color: white;
+  }
+  .btn-primary:hover { background: #7c74ff; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: rgba(255,77,106,0.15); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,77,106,0.25); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 16px; width: 90%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:none; } }
+  .modal-header {
+    padding: 24px 24px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; }
+  .modal-close {
+    background: none; border: none; color: var(--text2);
+    font-size: 20px; cursor: pointer; padding: 4px;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 20px 24px 24px; }
+
+  /* FORMS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label {
+    font-size: 11px; font-family: 'DM Mono', monospace;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--text2);
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius2); padding: 10px 14px;
+    color: var(--text); font-size: 13.5px;
+    font-family: 'Inter', sans-serif; outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-group select option { background: var(--bg2); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-actions {
+    display: flex; gap: 10px; justify-content: flex-end;
+    margin-top: 20px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ALERTS */
+  .alert {
+    padding: 12px 16px; border-radius: var(--radius2);
+    font-size: 13px; margin-bottom: 16px;
+    border-left: 3px solid;
+  }
+  .alert-success { background: rgba(0,212,170,0.1); border-color: var(--success); color: var(--success); }
+  .alert-error { background: rgba(255,77,106,0.1); border-color: var(--danger); color: var(--danger); }
+
+  /* DASHBOARD RECENT SECTION */
+  .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .section-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .section-card-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-card-title {
+    font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600;
+  }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; }
+  .filter-select {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius2); padding: 8px 12px;
+    color: var(--text2); font-size: 12.5px;
+    font-family: 'DM Mono', monospace; outline: none; cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); color: var(--text); }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius2); padding: 14px 18px;
+    font-size: 13.5px; color: var(--text);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s ease;
+    display: flex; align-items: center; gap: 10px;
+    max-width: 320px;
+  }
+  @keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+  .toast.success { border-left: 3px solid var(--success); }
+  .toast.error { border-left: 3px solid var(--danger); }
+  .toast.info { border-left: 3px solid var(--accent); }
+
+  /* DETAIL BOX */
+  .detail-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius2); padding: 16px;
+    margin-bottom: 16px;
+  }
+  .detail-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13.5px; }
+  .detail-row:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .detail-label { color: var(--text2); }
+  .detail-value { font-weight: 500; }
+
+  /* OVERDUE highlight */
+  tr.overdue td { color: var(--danger) !important; }
+  .amount { font-family: 'DM Mono', monospace; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .dashboard-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<h2>Equipment List</h2>
+<div id="equipmentList"></div>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">RentFlow</div>
+    <div class="logo-sub">DBMS Project · Rental System</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <button class="nav-btn active" onclick="showPage('dashboard')">
+        <span class="icon">⬛</span> Dashboard
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Core</div>
+      <button class="nav-btn" onclick="showPage('customers')">
+        <span class="icon">👥</span> Customers
+      </button>
+      <button class="nav-btn" onclick="showPage('equipment')">
+        <span class="icon">🔧</span> Equipment
+      </button>
+      <button class="nav-btn" onclick="showPage('rentals')">
+        <span class="icon">📋</span> Rentals
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Finance</div>
+      <button class="nav-btn" onclick="showPage('payments')">
+        <span class="icon">💳</span> Payments
+      </button>
+      <button class="nav-btn" onclick="showPage('deposits')">
+        <span class="icon">🔒</span> Deposits
+      </button>
+      <button class="nav-btn" onclick="showPage('latefees')">
+        <span class="icon">⏰</span> Late Fees
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Reports</div>
+      <button class="nav-btn" onclick="showPage('damages')">
+        <span class="icon">⚠️</span> Damage Reports
+      </button>
+      <button class="nav-btn" onclick="showPage('reports')">
+        <span class="icon">📊</span> Analytics
+      </button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Database</div>
+      <button class="nav-btn" onclick="showPage('sql')">
+        <span class="icon">🗄️</span> SQL Console
+      </button>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    v1.0 · SQLite In-Browser · 7 Tables
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-subtitle">Equipment Rental Management System</div>
+      </div>
+      <span id="db-status" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);">⏳ Loading DB...</span>
+    </div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card blue"><div class="stat-icon">🔧</div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Equipment</div></div>
+      <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-value" id="s-avail">—</div><div class="stat-label">Available Now</div></div>
+      <div class="stat-card pink"><div class="stat-icon">📋</div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active Rentals</div></div>
+      <div class="stat-card orange"><div class="stat-icon">⏰</div><div class="stat-value" id="s-overdue">—</div><div class="stat-label">Overdue Returns</div></div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">Recent Rentals</div>
+        </div>
+        <table>
+          <thead><tr><th>Customer</th><th>Equipment</th><th>Status</th><th>Due Date</th></tr></thead>
+          <tbody id="dash-rentals"></tbody>
+        </table>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">Pending Payments</div>
+        </div>
+        <table>
+          <thead><tr><th>Customer</th><th>Type</th><th>Amount</th></tr></thead>
+          <tbody id="dash-payments"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMERS -->
+  <div id="page-customers" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Customers</div>
+        <div class="page-subtitle">Manage customer profiles and rental history</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-customer')">＋ Add Customer</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="search-box">
+          🔍 <input type="text" placeholder="Search by name, phone, email..." oninput="searchCustomers(this.value)" id="customer-search">
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>ID Proof</th><th>Rentals</th><th>Actions</th></tr></thead>
+        <tbody id="customers-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT -->
+  <div id="page-equipment" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Equipment</div>
+        <div class="page-subtitle">Equipment catalog with status and condition tracking</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-equipment')">＋ Add Equipment</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="search-box">
+          🔍 <input type="text" placeholder="Search equipment..." oninput="loadEquipment(this.value, document.getElementById('eq-cat-filter').value, document.getElementById('eq-status-filter').value)" id="eq-search">
+        </div>
+        <div class="filter-bar">
+          <select class="filter-select" id="eq-cat-filter" onchange="loadEquipment(document.getElementById('eq-search').value, this.value, document.getElementById('eq-status-filter').value)">
+            <option value="">All Categories</option>
+            <option>Cameras</option><option>Laptops</option><option>Projectors</option>
+            <option>Musical Instruments</option><option>Audio Equipment</option><option>Other</option>
+          </select>
+          <select class="filter-select" id="eq-status-filter" onchange="loadEquipment(document.getElementById('eq-search').value, document.getElementById('eq-cat-filter').value, this.value)">
+            <option value="">All Status</option>
+            <option>Available</option><option>Rented</option><option>Maintenance</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Brand/Model</th><th>Rate/Day</th><th>Status</th><th>Condition</th><th>Actions</th></tr></thead>
+        <tbody id="equipment-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RENTALS -->
+  <div id="page-rentals" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Rentals</div>
+        <div class="page-subtitle">Manage equipment rentals, returns, and status</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-rental')">＋ New Rental</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="search-box">
+          🔍 <input type="text" placeholder="Search rentals..." oninput="loadRentals(this.value, document.getElementById('rental-status-filter').value)" id="rental-search">
+        </div>
+        <div class="filter-bar">
+          <select class="filter-select" id="rental-status-filter" onchange="loadRentals(document.getElementById('rental-search').value, this.value)">
+            <option value="">All Status</option>
+            <option>Active</option><option>Returned</option><option>Overdue</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Customer</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="rentals-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div id="page-payments" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Payments</div>
+        <div class="page-subtitle">All payment records and transaction history</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-payment')">＋ Record Payment</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <div class="search-box">🔍 <input type="text" placeholder="Search payments..." oninput="loadPayments(this.value)" id="pay-search"></div>
+        <div class="filter-bar">
+          <select class="filter-select" id="pay-type-filter" onchange="loadPayments(document.getElementById('pay-search').value)">
+            <option value="">All Types</option>
+            <option>Rental</option><option>Deposit</option><option>Late Fee</option><option>Damage</option><option>Refund</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Rental ID</th><th>Type</th><th>Amount</th><th>Method</th><th>Date</th><th>Notes</th></tr></thead>
+        <tbody id="payments-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DEPOSITS -->
+  <div id="page-deposits" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Deposits</div>
+        <div class="page-subtitle">Security deposit tracking and refund management</div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Rental ID</th><th>Customer</th><th>Amount Paid</th><th>Deductions</th><th>Refund Amt</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="deposits-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LATE FEES -->
+  <div id="page-latefees" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Late Fees</div>
+        <div class="page-subtitle">Overdue rental fees and payment tracking</div>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Rental ID</th><th>Customer</th><th>Days Late</th><th>Fee/Day</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="latefees-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DAMAGES -->
+  <div id="page-damages" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Damage Reports</div>
+        <div class="page-subtitle">Equipment damage tracking and repair cost management</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-damage')">＋ Report Damage</button>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Rental ID</th><th>Equipment</th><th>Description</th><th>Repair Cost</th><th>Reported On</th><th>Status</th></tr></thead>
+        <tbody id="damages-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- REPORTS / ANALYTICS -->
+  <div id="page-reports" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Analytics & Reports</div>
+        <div class="page-subtitle">Business insights and performance metrics</div>
+      </div>
+      <button class="btn btn-secondary" onclick="loadReports()">↻ Refresh</button>
+    </div>
+    <div class="stats-grid" style="margin-bottom:24px">
+      <div class="stat-card blue"><div class="stat-icon">💰</div><div class="stat-value amount" id="r-revenue">—</div><div class="stat-label">Total Revenue (INR)</div></div>
+      <div class="stat-card pink"><div class="stat-icon">👥</div><div class="stat-value" id="r-customers">—</div><div class="stat-label">Total Customers</div></div>
+      <div class="stat-card green"><div class="stat-icon">📋</div><div class="stat-value" id="r-rentals">—</div><div class="stat-label">Total Rentals</div></div>
+      <div class="stat-card orange"><div class="stat-icon">⚠️</div><div class="stat-value" id="r-damages">—</div><div class="stat-label">Damage Reports</div></div>
+    </div>
+    <div class="dashboard-grid">
+      <div class="section-card">
+        <div class="section-card-header"><div class="section-card-title">Equipment by Category</div></div>
+        <div style="padding:16px;" id="r-categories"></div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><div class="section-card-title">Overdue Rentals</div></div>
+        <table>
+          <thead><tr><th>Customer</th><th>Equipment</th><th>Days Late</th></tr></thead>
+          <tbody id="r-overdue-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL CONSOLE -->
+  <div id="page-sql" class="page">
+    <div class="page-header">
+      <div>
+        <div class="page-title">SQL Console</div>
+        <div class="page-subtitle">Execute raw SQL queries on the database</div>
+      </div>
+    </div>
+    <div class="table-wrapper" style="margin-bottom:20px">
+      <div style="padding:16px">
+        <div style="margin-bottom:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">QUERY EDITOR</div>
+        <textarea id="sql-input" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:14px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;min-height:140px;outline:none;resize:vertical" placeholder="SELECT * FROM customers LIMIT 10;"></textarea>
+        <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="runSQL()">▶ Run Query</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM customers;')">customers</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM equipment;')">equipment</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM rentals;')">rentals</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM payments;')">payments</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM deposits;')">deposits</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM late_fees;')">late_fees</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate('SELECT * FROM damage_reports;')">damage_reports</button>
+          <button class="btn btn-secondary btn-sm" onclick="setSQLTemplate(schemaSQL)">📐 Schema</button>
+        </div>
+      </div>
+    </div>
+    <div id="sql-result" class="table-wrapper" style="display:none">
+      <div style="padding:16px;" id="sql-result-inner"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODALS -->
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="modal-customer">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-customer-title">Add Customer</div>
+      <button class="modal-close" onclick="closeModal('modal-customer')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="c-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Full Name *</label><input type="text" id="c-name" placeholder="John Doe"></div>
+        <div class="form-group"><label>Phone *</label><input type="tel" id="c-phone" placeholder="+91 9876543210"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="c-email" placeholder="john@email.com"></div>
+        <div class="form-group"><label>ID Proof Type</label>
+          <select id="c-idtype">
+            <option>Aadhar Card</option><option>PAN Card</option><option>Passport</option>
+            <option>Driving License</option><option>Voter ID</option>
+          </select>
+        </div>
+        <div class="form-group"><label>ID Number</label><input type="text" id="c-idnum" placeholder="XXXX-XXXX-XXXX"></div>
+        <div class="form-group full"><label>Address</label><textarea id="c-address" placeholder="Full address..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-customer')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomer()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Equipment Modal -->
+<div class="modal-overlay" id="modal-equipment">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-equipment-title">Add Equipment</div>
+      <button class="modal-close" onclick="closeModal('modal-equipment')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="eq-id">
+      <div class="form-grid">
+        <div class="form-group full"><label>Equipment Name *</label><input type="text" id="eq-name" placeholder="Canon EOS R5"></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="eq-cat">
+            <option>Cameras</option><option>Laptops</option><option>Projectors</option>
+            <option>Musical Instruments</option><option>Audio Equipment</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Brand</label><input type="text" id="eq-brand" placeholder="Canon"></div>
+        <div class="form-group"><label>Model</label><input type="text" id="eq-model" placeholder="EOS R5"></div>
+        <div class="form-group"><label>Serial Number</label><input type="text" id="eq-serial" placeholder="SN-XXXXX"></div>
+        <div class="form-group"><label>Daily Rate (₹) *</label><input type="number" id="eq-rate" placeholder="500" min="0"></div>
+        <div class="form-group"><label>Deposit (₹)</label><input type="number" id="eq-deposit" placeholder="5000" min="0"></div>
+        <div class="form-group"><label>Condition</label>
+          <select id="eq-condition">
+            <option>Excellent</option><option>Good</option><option>Fair</option><option>Damaged</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Description</label><textarea id="eq-desc" placeholder="Equipment details..."></textarea></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-equipment')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEquipment()">Save Equipment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rental Modal -->
+<div class="modal-overlay" id="modal-rental">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Rental</div>
+      <button class="modal-close" onclick="closeModal('modal-rental')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Customer *</label>
+          <select id="r-customer" onchange="checkCustomerDues()">
+            <option value="">Select customer...</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Equipment *</label>
+          <select id="r-equipment" onchange="updateRentalCalc()">
+            <option value="">Select equipment...</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Start Date *</label><input type="date" id="r-start" onchange="updateRentalCalc()"></div>
+        <div class="form-group"><label>Expected Return Date *</label><input type="date" id="r-end" onchange="updateRentalCalc()"></div>
+        <div class="form-group"><label>Pickup Condition</label>
+          <select id="r-pickup-cond">
+            <option>Excellent</option><option>Good</option><option>Fair</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Notes</label><input type="text" id="r-notes" placeholder="Any notes..."></div>
+      </div>
+      <div class="detail-box" id="rental-calc" style="margin-top:16px;display:none">
+        <div class="detail-row"><span class="detail-label">Daily Rate</span><span class="detail-value amount" id="calc-rate">—</span></div>
+        <div class="detail-row"><span class="detail-label">Duration</span><span class="detail-value" id="calc-days">—</span></div>
+        <div class="detail-row"><span class="detail-label">Rental Amount</span><span class="detail-value amount" id="calc-amount">—</span></div>
+        <div class="detail-row"><span class="detail-label">Security Deposit</span><span class="detail-value amount" id="calc-deposit">—</span></div>
+        <div class="detail-row" style="font-weight:700"><span class="detail-label">Total Due</span><span class="detail-value amount" id="calc-total" style="color:var(--accent)">—</span></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-rental')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveRental()">Create Rental</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Return Modal -->
+<div class="modal-overlay" id="modal-return">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Process Return</div>
+      <button class="modal-close" onclick="closeModal('modal-return')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-box" id="return-info"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Return Date *</label><input type="date" id="ret-date" onchange="updateReturnCalc()"></div>
+        <div class="form-group"><label>Return Condition *</label>
+          <select id="ret-condition" onchange="updateReturnCalc()">
+            <option>Excellent</option><option>Good</option><option>Fair</option><option>Damaged</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Damage Description</label><textarea id="ret-damage-desc" placeholder="Describe any damages..."></textarea></div>
+        <div class="form-group"><label>Repair Cost (₹)</label><input type="number" id="ret-repair-cost" placeholder="0" value="0" onchange="updateReturnCalc()" min="0"></div>
+      </div>
+      <div class="detail-box" id="return-calc" style="margin-top:12px"></div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-return')">Cancel</button>
+        <button class="btn btn-primary" onclick="processReturn()">Process Return</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Record Payment</div>
+      <button class="modal-close" onclick="closeModal('modal-payment')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Rental ID *</label>
+          <select id="p-rental"><option value="">Select rental...</option></select>
+        </div>
+        <div class="form-group"><label>Payment Type *</label>
+          <select id="p-type">
+            <option>Rental</option><option>Deposit</option><option>Late Fee</option>
+            <option>Damage</option><option>Refund</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Amount (₹) *</label><input type="number" id="p-amount" placeholder="0" min="0"></div>
+        <div class="form-group"><label>Payment Method</label>
+          <select id="p-method">
+            <option>Cash</option><option>Card</option><option>UPI</option><option>Bank Transfer</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Notes</label><input type="text" id="p-notes" placeholder="Payment reference, notes..."></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-payment')">Cancel</button>
+        <button class="btn btn-primary" onclick="savePayment()">Record Payment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Damage Modal -->
+<div class="modal-overlay" id="modal-damage">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Report Damage</div>
+      <button class="modal-close" onclick="closeModal('modal-damage')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Rental *</label>
+          <select id="d-rental"><option value="">Select rental...</option></select>
+        </div>
+        <div class="form-group"><label>Equipment *</label>
+          <select id="d-equipment"><option value="">Select equipment...</option></select>
+        </div>
+        <div class="form-group full"><label>Damage Description *</label>
+          <textarea id="d-desc" placeholder="Describe the damage in detail..."></textarea>
+        </div>
+        <div class="form-group"><label>Repair Cost (₹)</label><input type="number" id="d-cost" placeholder="0" min="0"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="d-status">
+            <option>Pending</option><option>Under Repair</option><option>Repaired</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-damage')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDamage()">Submit Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ========== DATABASE ==========
+let db;
+let SQL;
+let currentReturnRentalId = null;
+
+const schemaSQL = `
+-- Show all table schemas
+SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name;
+`;
+
+async function initDB() {
+  try {
+    SQL = await initSqlJs({
+      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/${file}`
+    });
+    db = new SQL.Database();
+    createTables();
+    seedData();
+    document.getElementById('db-status').textContent = '✅ Database Ready · 7 Tables';
+    document.getElementById('db-status').style.color = 'var(--success)';
+    refreshAll();
+  } catch(e) {
+    document.getElementById('db-status').textContent = '❌ DB Error: ' + e.message;
+    document.getElementById('db-status').style.color = 'var(--danger)';
+    console.error(e);
+  }
+}
+
+function createTables() {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      address TEXT,
+      id_proof_type TEXT,
+      id_proof_number TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS equipment (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      brand TEXT,
+      model TEXT,
+      serial_number TEXT UNIQUE,
+      daily_rate REAL NOT NULL,
+      deposit_amount REAL DEFAULT 0,
+      status TEXT DEFAULT 'Available' CHECK(status IN ('Available','Rented','Maintenance')),
+      condition TEXT DEFAULT 'Good' CHECK(condition IN ('Excellent','Good','Fair','Damaged')),
+      description TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS rentals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      equipment_id INTEGER NOT NULL,
+      start_date TEXT NOT NULL,
+      expected_return_date TEXT NOT NULL,
+      actual_return_date TEXT,
+      pickup_condition TEXT,
+      return_condition TEXT,
+      rental_amount REAL NOT NULL,
+      status TEXT DEFAULT 'Active' CHECK(status IN ('Active','Returned','Overdue')),
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (customer_id) REFERENCES customers(id),
+      FOREIGN KEY (equipment_id) REFERENCES equipment(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS deposits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rental_id INTEGER UNIQUE NOT NULL,
+      amount_paid REAL NOT NULL,
+      damage_deduction REAL DEFAULT 0,
+      late_fee_deduction REAL DEFAULT 0,
+      refund_amount REAL,
+      refund_status TEXT DEFAULT 'Pending' CHECK(refund_status IN ('Pending','Processed','Waived')),
+      refund_date TEXT,
+      FOREIGN KEY (rental_id) REFERENCES rentals(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS late_fees (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rental_id INTEGER UNIQUE NOT NULL,
+      days_late INTEGER NOT NULL,
+      fee_per_day REAL NOT NULL,
+      total_fee REAL NOT NULL,
+      payment_status TEXT DEFAULT 'Unpaid' CHECK(payment_status IN ('Unpaid','Paid')),
+      FOREIGN KEY (rental_id) REFERENCES rentals(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rental_id INTEGER NOT NULL,
+      payment_type TEXT NOT NULL CHECK(payment_type IN ('Rental','Deposit','Late Fee','Damage','Refund')),
+      amount REAL NOT NULL,
+      payment_method TEXT DEFAULT 'Cash' CHECK(payment_method IN ('Cash','Card','UPI','Bank Transfer')),
+      payment_date TEXT DEFAULT (datetime('now')),
+      notes TEXT,
+      FOREIGN KEY (rental_id) REFERENCES rentals(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS damage_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rental_id INTEGER NOT NULL,
+      equipment_id INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      repair_cost REAL DEFAULT 0,
+      status TEXT DEFAULT 'Pending' CHECK(status IN ('Pending','Under Repair','Repaired')),
+      reported_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (rental_id) REFERENCES rentals(id),
+      FOREIGN KEY (equipment_id) REFERENCES equipment(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_rentals_customer ON rentals(customer_id);
+    CREATE INDEX IF NOT EXISTS idx_rentals_equipment ON rentals(equipment_id);
+    CREATE INDEX IF NOT EXISTS idx_payments_rental ON payments(rental_id);
+  `);
+}
+
+function seedData() {
+  const count = db.exec("SELECT COUNT(*) as c FROM customers")[0].values[0][0];
+  if (count > 0) return;
+
+  db.run(`
+    INSERT INTO customers (name, phone, email, address, id_proof_type, id_proof_number) VALUES
+    ('Rahul Sharma', '9876543210', 'rahul@email.com', '12, MG Road, Bangalore', 'Aadhar Card', '1234-5678-9012'),
+    ('Priya Patel', '8765432109', 'priya@email.com', '45, Linking Road, Mumbai', 'PAN Card', 'ABCDE1234F'),
+    ('Arjun Kumar', '7654321098', 'arjun@email.com', '78, CP, New Delhi', 'Passport', 'P1234567'),
+    ('Sneha Reddy', '6543210987', 'sneha@email.com', '23, Jubilee Hills, Hyderabad', 'Aadhar Card', '9876-5432-1098'),
+    ('Vikram Mehta', '9988776655', 'vikram@email.com', '56, CG Road, Ahmedabad', 'Driving License', 'GJ01-DL-2019');
+
+    INSERT INTO equipment (name, category, brand, model, serial_number, daily_rate, deposit_amount, status, condition, description) VALUES
+    ('DSLR Camera Pro', 'Cameras', 'Canon', 'EOS R5', 'CAM-001', 1500, 15000, 'Available', 'Excellent', '45MP full-frame mirrorless camera'),
+    ('MacBook Pro 16"', 'Laptops', 'Apple', 'MacBook Pro M3', 'LAP-001', 2000, 20000, 'Rented', 'Good', '16-inch M3 Pro chip laptop'),
+    ('4K Projector', 'Projectors', 'Epson', 'EH-TW9400', 'PRO-001', 1200, 10000, 'Available', 'Excellent', '4K HDR home theater projector'),
+    ('Acoustic Guitar', 'Musical Instruments', 'Yamaha', 'FG800', 'GIT-001', 300, 3000, 'Available', 'Good', 'Full size dreadnought acoustic guitar'),
+    ('Professional Drone', 'Cameras', 'DJI', 'Mavic 3 Pro', 'DRN-001', 2500, 25000, 'Maintenance', 'Fair', 'Professional drone with Hasselblad camera'),
+    ('PA Speaker System', 'Audio Equipment', 'JBL', 'EON715', 'SPK-001', 800, 8000, 'Available', 'Good', '1300W powered PA speaker'),
+    ('Gaming Laptop', 'Laptops', 'ASUS', 'ROG Strix G16', 'LAP-002', 1800, 18000, 'Available', 'Excellent', 'High performance gaming laptop'),
+    ('Mirrorless Camera', 'Cameras', 'Sony', 'Alpha A7 IV', 'CAM-002', 1800, 18000, 'Rented', 'Good', '33MP full-frame mirrorless');
+
+    INSERT INTO rentals (customer_id, equipment_id, start_date, expected_return_date, pickup_condition, rental_amount, status, notes) VALUES
+    (1, 2, date('now', '-10 days'), date('now', '-3 days'), 'Good', 20000, 'Overdue', 'Corporate event shoot'),
+    (2, 8, date('now', '-5 days'), date('now', '+2 days'), 'Good', 9000, 'Active', 'Wedding photography'),
+    (3, 3, date('now', '-2 days'), date('now', '+5 days'), 'Excellent', 8400, 'Active', 'Conference presentation');
+
+    INSERT INTO deposits (rental_id, amount_paid, refund_status) VALUES
+    (1, 20000, 'Pending'),
+    (2, 18000, 'Pending'),
+    (3, 10000, 'Pending');
+
+    INSERT INTO payments (rental_id, payment_type, amount, payment_method, notes) VALUES
+    (1, 'Deposit', 20000, 'UPI', 'Deposit for MacBook rental'),
+    (1, 'Rental', 14000, 'Cash', 'Partial rental payment'),
+    (2, 'Deposit', 18000, 'Card', 'Security deposit'),
+    (2, 'Rental', 9000, 'UPI', 'Full rental payment'),
+    (3, 'Deposit', 10000, 'Cash', 'Projector deposit'),
+    (3, 'Rental', 8400, 'UPI', 'Rental amount paid');
+
+    INSERT INTO late_fees (rental_id, days_late, fee_per_day, total_fee, payment_status) VALUES
+    (1, 3, 500, 1500, 'Unpaid');
+  `);
+
+  // Update rental 1 to overdue status
+  db.run(`UPDATE rentals SET status = 'Overdue' WHERE id = 1`);
+}
+
+// ========== NAVIGATION ==========
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  const loaders = {
+    dashboard: loadDashboard,
+    customers: loadCustomers,
+    equipment: loadEquipment,
+    rentals: loadRentals,
+    payments: loadPayments,
+    deposits: loadDeposits,
+    latefees: loadLateFees,
+    damages: loadDamages,
+    reports: loadReports
+  };
+  if (loaders[page]) loaders[page]();
+}
+
+function refreshAll() {
+  loadDashboard();
+}
+
+// ========== DASHBOARD ==========
+function loadDashboard() {
+  if (!db) return;
+  const total = db.exec("SELECT COUNT(*) FROM equipment")[0].values[0][0];
+  const avail = db.exec("SELECT COUNT(*) FROM equipment WHERE status='Available'")[0].values[0][0];
+  const active = db.exec("SELECT COUNT(*) FROM rentals WHERE status='Active'")[0].values[0][0];
+
+  // Auto-calculate overdue
+  db.run(`UPDATE rentals SET status='Overdue' WHERE status='Active' AND expected_return_date < date('now') AND actual_return_date IS NULL`);
+  const overdue = db.exec("SELECT COUNT(*) FROM rentals WHERE status='Overdue'")[0].values[0][0];
+
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-avail').textContent = avail;
+  document.getElementById('s-active').textContent = active;
+  document.getElementById('s-overdue').textContent = overdue;
+
+  // Recent rentals
+  const rentals = db.exec(`
+    SELECT c.name, e.name, r.status, r.expected_return_date
+    FROM rentals r JOIN customers c ON r.customer_id=c.id JOIN equipment e ON r.equipment_id=e.id
+    ORDER BY r.id DESC LIMIT 5
+  `);
+  const tbody = document.getElementById('dash-rentals');
+  if (!rentals.length || !rentals[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No rentals yet</td></tr>';
+  } else {
+    tbody.innerHTML = rentals[0].values.map(r => `<tr>
+      <td>${r[0]}</td><td>${r[1]}</td>
+      <td>${statusBadge(r[2])}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${r[3]}</td>
+    </tr>`).join('');
+  }
+
+  // Pending payments (deposits + late fees)
+  const pending = db.exec(`
+    SELECT c.name, 'Deposit Refund', d.amount_paid
+    FROM deposits d JOIN rentals r ON d.rental_id=r.id JOIN customers c ON r.customer_id=c.id
+    WHERE d.refund_status='Pending'
+    UNION ALL
+    SELECT c.name, 'Late Fee', lf.total_fee
+    FROM late_fees lf JOIN rentals r ON lf.rental_id=r.id JOIN customers c ON r.customer_id=c.id
+    WHERE lf.payment_status='Unpaid'
+    LIMIT 6
+  `);
+  const tbody2 = document.getElementById('dash-payments');
+  if (!pending.length || !pending[0].values.length) {
+    tbody2.innerHTML = '<tr class="empty-row"><td colspan="3">No pending items</td></tr>';
+  } else {
+    tbody2.innerHTML = pending[0].values.map(p => `<tr>
+      <td>${p[0]}</td>
+      <td><span class="badge badge-yellow">${p[1]}</span></td>
+      <td class="amount">₹${p[2].toLocaleString()}</td>
+    </tr>`).join('');
+  }
+}
+
+// ========== CUSTOMERS ==========
+function loadCustomers(search='') {
+  if (!db) return;
+  const q = `%${search}%`;
+  const res = db.exec(`
+    SELECT c.id, c.name, c.phone, c.email, c.id_proof_type, c.id_proof_number,
+      (SELECT COUNT(*) FROM rentals WHERE customer_id=c.id) as rent_count
+    FROM customers c
+    WHERE c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?
+    ORDER BY c.id DESC
+  `, [q, q, q]);
+  const tbody = document.getElementById('customers-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No customers found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(c => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${c[0]}</td>
+    <td style="font-weight:500">${c[1]}</td>
+    <td class="amount">${c[2]}</td>
+    <td>${c[3] || '—'}</td>
+    <td><span class="badge badge-gray">${c[4] || '—'}</span></td>
+    <td><span class="badge badge-blue">${c[6]} rentals</span></td>
+    <td>
+      <button class="btn btn-secondary btn-sm" onclick="editCustomer(${c[0]})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCustomer(${c[0]}, ${c[6]})">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+function searchCustomers(val) { loadCustomers(val); }
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function saveCustomer() {
+  const id = document.getElementById('c-id').value;
+  const name = document.getElementById('c-name').value.trim();
+  const phone = document.getElementById('c-phone').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const addr = document.getElementById('c-address').value.trim();
+  const idtype = document.getElementById('c-idtype').value;
+  const idnum = document.getElementById('c-idnum').value.trim();
+
+  if (!name || !phone) { toast('Name and phone are required', 'error'); return; }
+
+  if (id) {
+    db.run(`UPDATE customers SET name=?,phone=?,email=?,address=?,id_proof_type=?,id_proof_number=? WHERE id=?`,
+      [name, phone, email, addr, idtype, idnum, id]);
+    toast('Customer updated!', 'success');
+  } else {
+    db.run(`INSERT INTO customers (name,phone,email,address,id_proof_type,id_proof_number) VALUES (?,?,?,?,?,?)`,
+      [name, phone, email, addr, idtype, idnum]);
+    toast('Customer added!', 'success');
+  }
+  closeModal('modal-customer');
+  resetCustomerForm();
+  loadCustomers();
+}
+
+function resetCustomerForm() {
+  ['c-id','c-name','c-phone','c-email','c-address','c-idnum'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('modal-customer-title').textContent = 'Add Customer';
+}
+
+function editCustomer(id) {
+  const res = db.exec(`SELECT * FROM customers WHERE id=?`, [id]);
+  if (!res.length) return;
+  const c = res[0].values[0];
+  document.getElementById('c-id').value = c[0];
+  document.getElementById('c-name').value = c[1];
+  document.getElementById('c-phone').value = c[2];
+  document.getElementById('c-email').value = c[3] || '';
+  document.getElementById('c-address').value = c[4] || '';
+  document.getElementById('c-idtype').value = c[5] || 'Aadhar Card';
+  document.getElementById('c-idnum').value = c[6] || '';
+  document.getElementById('modal-customer-title').textContent = 'Edit Customer';
+  openModal('modal-customer');
+}
+
+function deleteCustomer(id, rentCount) {
+  if (rentCount > 0) { toast('Cannot delete: customer has rental history', 'error'); return; }
+  if (!confirm('Delete this customer?')) return;
+  db.run(`DELETE FROM customers WHERE id=?`, [id]);
+  toast('Customer deleted', 'info');
+  loadCustomers();
+}
+
+// ========== EQUIPMENT ==========
+function loadEquipment(search='', cat='', status='') {
+  if (!db) return;
+  const q = `%${search}%`;
+  let sql = `SELECT id,name,category,brand,model,daily_rate,deposit_amount,status,condition FROM equipment WHERE (name LIKE ? OR brand LIKE ? OR model LIKE ?)`;
+  const params = [q, q, q];
+  if (cat) { sql += ' AND category=?'; params.push(cat); }
+  if (status) { sql += ' AND status=?'; params.push(status); }
+  sql += ' ORDER BY id DESC';
+  const res = db.exec(sql, params);
+  const tbody = document.getElementById('equipment-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No equipment found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(e => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${e[0]}</td>
+    <td style="font-weight:500">${e[1]}</td>
+    <td><span class="badge badge-blue">${e[2]}</span></td>
+    <td style="color:var(--text2)">${e[3]||''} ${e[4]||''}</td>
+    <td class="amount">₹${e[5].toLocaleString()}/day</td>
+    <td>${eqStatusBadge(e[7])}</td>
+    <td>${condBadge(e[8])}</td>
+    <td>
+      <button class="btn btn-secondary btn-sm" onclick="editEquipment(${e[0]})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteEquipment(${e[0]}, '${e[7]}')">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+function saveEquipment() {
+  const id = document.getElementById('eq-id').value;
+  const name = document.getElementById('eq-name').value.trim();
+  const cat = document.getElementById('eq-cat').value;
+  const brand = document.getElementById('eq-brand').value.trim();
+  const model = document.getElementById('eq-model').value.trim();
+  const serial = document.getElementById('eq-serial').value.trim();
+  const rate = parseFloat(document.getElementById('eq-rate').value);
+  const deposit = parseFloat(document.getElementById('eq-deposit').value) || 0;
+  const cond = document.getElementById('eq-condition').value;
+  const desc = document.getElementById('eq-desc').value.trim();
+
+  if (!name || !cat || !rate) { toast('Name, category, and daily rate are required', 'error'); return; }
+
+  if (id) {
+    db.run(`UPDATE equipment SET name=?,category=?,brand=?,model=?,serial_number=?,daily_rate=?,deposit_amount=?,condition=?,description=? WHERE id=?`,
+      [name, cat, brand, model, serial, rate, deposit, cond, desc, id]);
+    toast('Equipment updated!', 'success');
+  } else {
+    db.run(`INSERT INTO equipment (name,category,brand,model,serial_number,daily_rate,deposit_amount,condition,description) VALUES (?,?,?,?,?,?,?,?,?)`,
+      [name, cat, brand, model, serial||null, rate, deposit, cond, desc]);
+    toast('Equipment added!', 'success');
+  }
+  closeModal('modal-equipment');
+  resetEquipmentForm();
+  loadEquipment();
+}
+
+function resetEquipmentForm() {
+  ['eq-id','eq-name','eq-brand','eq-model','eq-serial','eq-rate','eq-deposit','eq-desc'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('modal-equipment-title').textContent = 'Add Equipment';
+}
+
+function editEquipment(id) {
+  const res = db.exec(`SELECT * FROM equipment WHERE id=?`, [id]);
+  if (!res.length) return;
+  const e = res[0].values[0];
+  document.getElementById('eq-id').value = e[0];
+  document.getElementById('eq-name').value = e[1];
+  document.getElementById('eq-cat').value = e[2];
+  document.getElementById('eq-brand').value = e[3]||'';
+  document.getElementById('eq-model').value = e[4]||'';
+  document.getElementById('eq-serial').value = e[5]||'';
+  document.getElementById('eq-rate').value = e[6];
+  document.getElementById('eq-deposit').value = e[7]||0;
+  document.getElementById('eq-condition').value = e[9];
+  document.getElementById('eq-desc').value = e[10]||'';
+  document.getElementById('modal-equipment-title').textContent = 'Edit Equipment';
+  openModal('modal-equipment');
+}
+
+function deleteEquipment(id, status) {
+  if (status === 'Rented') { toast('Cannot delete: equipment is currently rented', 'error'); return; }
+  if (!confirm('Delete this equipment?')) return;
+  db.run(`DELETE FROM equipment WHERE id=?`, [id]);
+  toast('Equipment deleted', 'info');
+  loadEquipment();
+}
+
+// ========== RENTALS ==========
+function loadRentals(search='', status='') {
+  if (!db) return;
+  // Update overdue status
+  db.run(`UPDATE rentals SET status='Overdue' WHERE status='Active' AND expected_return_date < date('now') AND actual_return_date IS NULL`);
+
+  const q = `%${search}%`;
+  let sql = `
+    SELECT r.id, c.name, e.name, r.start_date, r.expected_return_date, r.rental_amount, r.status
+    FROM rentals r JOIN customers c ON r.customer_id=c.id JOIN equipment e ON r.equipment_id=e.id
+    WHERE (c.name LIKE ? OR e.name LIKE ?)
+  `;
+  const params = [q, q];
+  if (status === 'Overdue') { sql += ` AND r.status='Overdue'`; }
+  else if (status === 'Active') { sql += ` AND r.status='Active'`; }
+  else if (status === 'Returned') { sql += ` AND r.status='Returned'`; }
+  sql += ' ORDER BY r.id DESC';
+
+  const res = db.exec(sql, params);
+  const tbody = document.getElementById('rentals-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No rentals found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(r => `<tr class="${r[6]==='Overdue'?'overdue':''}">
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${r[0]}</td>
+    <td style="font-weight:500">${r[1]}</td>
+    <td>${r[2]}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:12px">${r[3]}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:12px">${r[4]}</td>
+    <td class="amount">₹${r[5].toLocaleString()}</td>
+    <td>${statusBadge(r[6])}</td>
+    <td>
+      ${r[6] !== 'Returned' ? `<button class="btn btn-secondary btn-sm" onclick="openReturnModal(${r[0]})">Return</button>` : '<span style="color:var(--text3);font-size:12px">Returned</span>'}
+    </td>
+  </tr>`).join('');
+}
+
+function openReturnModal(rentalId) {
+  currentReturnRentalId = rentalId;
+  const res = db.exec(`
+    SELECT r.*, c.name as cname, e.name as ename, e.deposit_amount
+    FROM rentals r JOIN customers c ON r.customer_id=c.id JOIN equipment e ON r.equipment_id=e.id
+    WHERE r.id=?
+  `, [rentalId]);
+  if (!res.length) return;
+  const r = res[0].values[0];
+  // columns: id,customer_id,equipment_id,start,expected_return,actual_return,pickup_cond,return_cond,rental_amount,status,notes,created,cname,ename,deposit_amt
+
+  document.getElementById('return-info').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Customer</span><span class="detail-value">${r[12]}</span></div>
+    <div class="detail-row"><span class="detail-label">Equipment</span><span class="detail-value">${r[13]}</span></div>
+    <div class="detail-row"><span class="detail-label">Rental Period</span><span class="detail-value" style="font-family:'DM Mono',monospace">${r[3]} → ${r[4]}</span></div>
+    <div class="detail-row"><span class="detail-label">Rental Amount</span><span class="detail-value amount">₹${r[8].toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Security Deposit</span><span class="detail-value amount">₹${(r[14]||0).toLocaleString()}</span></div>
+  `;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('ret-date').value = today;
+  document.getElementById('ret-repair-cost').value = 0;
+  document.getElementById('ret-damage-desc').value = '';
+  updateReturnCalc();
+  openModal('modal-return');
+}
+
+function updateReturnCalc() {
+  if (!currentReturnRentalId) return;
+  const res = db.exec(`
+    SELECT r.expected_return_date, r.rental_amount, e.deposit_amount
+    FROM rentals r JOIN equipment e ON r.equipment_id=e.id WHERE r.id=?
+  `, [currentReturnRentalId]);
+  if (!res.length) return;
+  const [expectedReturn, rentalAmt, depositAmt] = res[0].values[0];
+
+  const retDate = document.getElementById('ret-date').value;
+  const repairCost = parseFloat(document.getElementById('ret-repair-cost').value) || 0;
+
+  const due = new Date(expectedReturn);
+  const ret = new Date(retDate || new Date());
+  const daysLate = Math.max(0, Math.ceil((ret - due) / (1000*60*60*24)));
+  const lateFee = daysLate * 500;
+  const totalDeductions = repairCost + lateFee;
+  const depositRefund = Math.max(0, (depositAmt||0) - totalDeductions);
+
+  document.getElementById('return-calc').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Days Late</span><span class="detail-value" style="color:${daysLate>0?'var(--danger)':'var(--success)'}">${daysLate} day(s)</span></div>
+    <div class="detail-row"><span class="detail-label">Late Fee (₹500/day)</span><span class="detail-value amount">₹${lateFee.toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Repair Cost</span><span class="detail-value amount">₹${repairCost.toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Total Deductions</span><span class="detail-value amount" style="color:var(--danger)">₹${totalDeductions.toLocaleString()}</span></div>
+    <div class="detail-row" style="font-weight:700"><span class="detail-label">Deposit Refund</span><span class="detail-value amount" style="color:var(--success)">₹${depositRefund.toLocaleString()}</span></div>
+  `;
+}
+
+function processReturn() {
+  const id = currentReturnRentalId;
+  const retDate = document.getElementById('ret-date').value;
+  const retCond = document.getElementById('ret-condition').value;
+  const repairCost = parseFloat(document.getElementById('ret-repair-cost').value) || 0;
+  const damageDesc = document.getElementById('ret-damage-desc').value.trim();
+
+  if (!retDate) { toast('Return date is required', 'error'); return; }
+
+  const res = db.exec(`
+    SELECT r.expected_return_date, r.equipment_id, e.deposit_amount
+    FROM rentals r JOIN equipment e ON r.equipment_id=e.id WHERE r.id=?
+  `, [id]);
+  if (!res.length) return;
+  const [expectedReturn, eqId, depositAmt] = res[0].values[0];
+
+  const due = new Date(expectedReturn);
+  const ret = new Date(retDate);
+  const daysLate = Math.max(0, Math.ceil((ret - due) / (1000*60*60*24)));
+  const lateFee = daysLate * 500;
+  const depositRefund = Math.max(0, (depositAmt||0) - repairCost - lateFee);
+
+  db.run(`UPDATE rentals SET status='Returned', actual_return_date=?, return_condition=? WHERE id=?`,
+    [retDate, retCond, id]);
+
+  const newEqStatus = (retCond === 'Damaged' || repairCost > 0) ? 'Maintenance' : 'Available';
+  db.run(`UPDATE equipment SET status=?, condition=? WHERE id=?`, [newEqStatus, retCond, eqId]);
+
+  db.run(`UPDATE deposits SET damage_deduction=?, late_fee_deduction=?, refund_amount=? WHERE rental_id=?`,
+    [repairCost, lateFee, depositRefund, id]);
+
+  if (daysLate > 0) {
+    const existing = db.exec(`SELECT id FROM late_fees WHERE rental_id=?`, [id]);
+    if (!existing.length || !existing[0].values.length) {
+      db.run(`INSERT INTO late_fees (rental_id, days_late, fee_per_day, total_fee) VALUES (?,?,500,?)`,
+        [id, daysLate, lateFee]);
+    }
+  }
+
+  if (damageDesc && repairCost > 0) {
+    db.run(`INSERT INTO damage_reports (rental_id, equipment_id, description, repair_cost) VALUES (?,?,?,?)`,
+      [id, eqId, damageDesc, repairCost]);
+  }
+
+  toast('Return processed successfully!', 'success');
+  closeModal('modal-return');
+  loadRentals();
+  loadDashboard();
+}
+
+function updateRentalCalc() {
+  const eqSel = document.getElementById('r-equipment');
+  const eqId = eqSel.value;
+  const start = document.getElementById('r-start').value;
+  const end = document.getElementById('r-end').value;
+  const calcDiv = document.getElementById('rental-calc');
+
+  if (!eqId || !start || !end) { calcDiv.style.display='none'; return; }
+
+  const res = db.exec(`SELECT daily_rate, deposit_amount FROM equipment WHERE id=?`, [eqId]);
+  if (!res.length) return;
+  const [rate, deposit] = res[0].values[0];
+
+  const days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24)));
+  const rentalAmt = days * rate;
+  const total = rentalAmt + (deposit||0);
+
+  calcDiv.style.display = 'block';
+  document.getElementById('calc-rate').textContent = `₹${rate.toLocaleString()}/day`;
+  document.getElementById('calc-days').textContent = `${days} day(s)`;
+  document.getElementById('calc-amount').textContent = `₹${rentalAmt.toLocaleString()}`;
+  document.getElementById('calc-deposit').textContent = `₹${(deposit||0).toLocaleString()}`;
+  document.getElementById('calc-total').textContent = `₹${total.toLocaleString()}`;
+}
+
+function saveRental() {
+  const custId = document.getElementById('r-customer').value;
+  const eqId = document.getElementById('r-equipment').value;
+  const start = document.getElementById('r-start').value;
+  const end = document.getElementById('r-end').value;
+  const pickupCond = document.getElementById('r-pickup-cond').value;
+  const notes = document.getElementById('r-notes').value;
+
+  if (!custId || !eqId || !start || !end) { toast('All required fields must be filled', 'error'); return; }
+  if (new Date(end) <= new Date(start)) { toast('Return date must be after start date', 'error'); return; }
+
+  // Check equipment availability
+  const eqStatus = db.exec(`SELECT status, daily_rate, deposit_amount FROM equipment WHERE id=?`, [eqId]);
+  if (!eqStatus.length || eqStatus[0].values[0][0] !== 'Available') {
+    toast('Equipment is not available for rent', 'error'); return;
+  }
+  const [, rate, deposit] = eqStatus[0].values[0];
+  const days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24)));
+  const rentalAmt = days * rate;
+
+  db.run(`INSERT INTO rentals (customer_id,equipment_id,start_date,expected_return_date,pickup_condition,rental_amount,notes) VALUES (?,?,?,?,?,?,?)`,
+    [custId, eqId, start, end, pickupCond, rentalAmt, notes]);
+
+  const rentalId = db.exec("SELECT last_insert_rowid()")[0].values[0][0];
+  db.run(`INSERT INTO deposits (rental_id, amount_paid) VALUES (?,?)`, [rentalId, deposit||0]);
+  db.run(`UPDATE equipment SET status='Rented' WHERE id=?`, [eqId]);
+
+  toast('Rental created! Deposit: ₹' + (deposit||0).toLocaleString(), 'success');
+  closeModal('modal-rental');
+  loadRentals();
+  loadDashboard();
+}
+
+function checkCustomerDues() {
+  // Could check for unpaid dues here
+}
+
+// ========== PAYMENTS ==========
+function loadPayments(search='') {
+  if (!db) return;
+  const typeFilter = document.getElementById('pay-type-filter').value;
+  const q = `%${search}%`;
+  let sql = `SELECT p.id, p.rental_id, p.payment_type, p.amount, p.payment_method, p.payment_date, p.notes
+    FROM payments p WHERE (CAST(p.rental_id AS TEXT) LIKE ? OR p.notes LIKE ?)`;
+  const params = [q, q];
+  if (typeFilter) { sql += ` AND p.payment_type=?`; params.push(typeFilter); }
+  sql += ' ORDER BY p.id DESC';
+
+  const res = db.exec(sql, params);
+  const tbody = document.getElementById('payments-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No payments found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(p => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${p[0]}</td>
+    <td style="font-family:'DM Mono',monospace">R#${p[1]}</td>
+    <td>${payTypeBadge(p[2])}</td>
+    <td class="amount">₹${p[3].toLocaleString()}</td>
+    <td><span class="badge badge-gray">${p[4]}</span></td>
+    <td style="font-family:'DM Mono',monospace;font-size:12px">${p[5].split(' ')[0]}</td>
+    <td style="color:var(--text2)">${p[6]||'—'}</td>
+  </tr>`).join('');
+}
+
+function savePayment() {
+  const rentalId = document.getElementById('p-rental').value;
+  const type = document.getElementById('p-type').value;
+  const amount = parseFloat(document.getElementById('p-amount').value);
+  const method = document.getElementById('p-method').value;
+  const notes = document.getElementById('p-notes').value;
+
+  if (!rentalId || !amount) { toast('Rental and amount are required', 'error'); return; }
+
+  db.run(`INSERT INTO payments (rental_id,payment_type,amount,payment_method,notes) VALUES (?,?,?,?,?)`,
+    [rentalId, type, amount, method, notes]);
+
+  // If late fee payment, mark as paid
+  if (type === 'Late Fee') {
+    db.run(`UPDATE late_fees SET payment_status='Paid' WHERE rental_id=?`, [rentalId]);
+  }
+
+  toast('Payment recorded!', 'success');
+  closeModal('modal-payment');
+  loadPayments();
+}
+
+// ========== DEPOSITS ==========
+function loadDeposits() {
+  if (!db) return;
+  const res = db.exec(`
+    SELECT d.id, d.rental_id, c.name, d.amount_paid, d.damage_deduction, d.late_fee_deduction, d.refund_amount, d.refund_status
+    FROM deposits d JOIN rentals r ON d.rental_id=r.id JOIN customers c ON r.customer_id=c.id
+    ORDER BY d.id DESC
+  `);
+  const tbody = document.getElementById('deposits-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No deposits found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(d => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${d[0]}</td>
+    <td style="font-family:'DM Mono',monospace">R#${d[1]}</td>
+    <td style="font-weight:500">${d[2]}</td>
+    <td class="amount">₹${d[3].toLocaleString()}</td>
+    <td class="amount" style="color:var(--danger)">₹${((d[4]||0)+(d[5]||0)).toLocaleString()}</td>
+    <td class="amount" style="color:var(--success)">₹${(d[6]||d[3]).toLocaleString()}</td>
+    <td>${depositStatusBadge(d[7])}</td>
+    <td>
+      ${d[7]==='Pending' ? `<button class="btn btn-secondary btn-sm" onclick="processDepositRefund(${d[0]})">Process Refund</button>` : '—'}
+    </td>
+  </tr>`).join('');
+}
+
+function processDepositRefund(id) {
+  db.run(`UPDATE deposits SET refund_status='Processed', refund_date=date('now') WHERE id=?`, [id]);
+  toast('Deposit refund processed!', 'success');
+  loadDeposits();
+}
+
+// ========== LATE FEES ==========
+function loadLateFees() {
+  if (!db) return;
+  const res = db.exec(`
+    SELECT lf.id, lf.rental_id, c.name, lf.days_late, lf.fee_per_day, lf.total_fee, lf.payment_status
+    FROM late_fees lf JOIN rentals r ON lf.rental_id=r.id JOIN customers c ON r.customer_id=c.id
+    ORDER BY lf.id DESC
+  `);
+  const tbody = document.getElementById('latefees-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No late fees recorded</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(lf => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${lf[0]}</td>
+    <td style="font-family:'DM Mono',monospace">R#${lf[1]}</td>
+    <td style="font-weight:500">${lf[2]}</td>
+    <td style="color:var(--danger);font-weight:600">${lf[3]} days</td>
+    <td class="amount">₹${lf[4].toLocaleString()}/day</td>
+    <td class="amount" style="color:var(--warning)">₹${lf[5].toLocaleString()}</td>
+    <td>${lf[6]==='Paid' ? '<span class="badge badge-green">Paid</span>' : '<span class="badge badge-red">Unpaid</span>'}</td>
+    <td>
+      ${lf[6]==='Unpaid' ? `<button class="btn btn-secondary btn-sm" onclick="markLateFeesPaid(${lf[0]})">Mark Paid</button>` : '—'}
+    </td>
+  </tr>`).join('');
+}
+
+function markLateFeesPaid(id) {
+  db.run(`UPDATE late_fees SET payment_status='Paid' WHERE id=?`, [id]);
+  toast('Late fee marked as paid', 'success');
+  loadLateFees();
+}
+
+// ========== DAMAGES ==========
+function loadDamages() {
+  if (!db) return;
+  const res = db.exec(`
+    SELECT dr.id, dr.rental_id, e.name, dr.description, dr.repair_cost, dr.reported_at, dr.status
+    FROM damage_reports dr JOIN equipment e ON dr.equipment_id=e.id
+    ORDER BY dr.id DESC
+  `);
+  const tbody = document.getElementById('damages-tbody');
+  if (!res.length || !res[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No damage reports</td></tr>';
+    return;
+  }
+  tbody.innerHTML = res[0].values.map(d => `<tr>
+    <td style="color:var(--text3);font-family:'DM Mono',monospace">#${d[0]}</td>
+    <td style="font-family:'DM Mono',monospace">R#${d[1]}</td>
+    <td style="font-weight:500">${d[2]}</td>
+    <td style="color:var(--text2);max-width:200px">${d[3]}</td>
+    <td class="amount" style="color:var(--danger)">₹${(d[4]||0).toLocaleString()}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:12px">${d[5].split(' ')[0]}</td>
+    <td>${damageStatusBadge(d[6])}</td>
+  </tr>`).join('');
+}
+
+function saveDamage() {
+  const rentalId = document.getElementById('d-rental').value;
+  const eqId = document.getElementById('d-equipment').value;
+  const desc = document.getElementById('d-desc').value.trim();
+  const cost = parseFloat(document.getElementById('d-cost').value) || 0;
+  const status = document.getElementById('d-status').value;
+
+  if (!rentalId || !eqId || !desc) { toast('Rental, equipment, and description required', 'error'); return; }
+
+  db.run(`INSERT INTO damage_reports (rental_id,equipment_id,description,repair_cost,status) VALUES (?,?,?,?,?)`,
+    [rentalId, eqId, desc, cost, status]);
+
+  if (status !== 'Repaired') {
+    db.run(`UPDATE equipment SET status='Maintenance' WHERE id=?`, [eqId]);
+  }
+
+  toast('Damage report submitted', 'success');
+  closeModal('modal-damage');
+  loadDamages();
+}
+
+// ========== REPORTS ==========
+function loadReports() {
+  if (!db) return;
+  const revenue = db.exec(`SELECT COALESCE(SUM(amount),0) FROM payments WHERE payment_type='Rental'`)[0].values[0][0];
+  const customers = db.exec(`SELECT COUNT(*) FROM customers`)[0].values[0][0];
+  const rentals = db.exec(`SELECT COUNT(*) FROM rentals`)[0].values[0][0];
+  const damages = db.exec(`SELECT COUNT(*) FROM damage_reports`)[0].values[0][0];
+
+  document.getElementById('r-revenue').textContent = '₹' + revenue.toLocaleString();
+  document.getElementById('r-customers').textContent = customers;
+  document.getElementById('r-rentals').textContent = rentals;
+  document.getElementById('r-damages').textContent = damages;
+
+  const cats = db.exec(`SELECT category, COUNT(*) as cnt, SUM(CASE WHEN status='Available' THEN 1 ELSE 0 END) as avail FROM equipment GROUP BY category`);
+  const catDiv = document.getElementById('r-categories');
+  if (cats.length && cats[0].values.length) {
+    catDiv.innerHTML = cats[0].values.map(c => `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:13px">${c[0]}</span>
+          <span style="font-size:12px;color:var(--text2)">${c[2]}/${c[1]} available</span>
+        </div>
+        <div style="background:var(--bg3);border-radius:4px;height:6px">
+          <div style="background:var(--accent);border-radius:4px;height:6px;width:${Math.round(c[2]/c[1]*100)}%"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const overdue = db.exec(`
+    SELECT c.name, e.name, CAST(julianday('now') - julianday(r.expected_return_date) AS INTEGER) as days_late
+    FROM rentals r JOIN customers c ON r.customer_id=c.id JOIN equipment e ON r.equipment_id=e.id
+    WHERE r.status='Overdue'
+  `);
+  const tbody = document.getElementById('r-overdue-table');
+  if (!overdue.length || !overdue[0].values.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="3">No overdue rentals 🎉</td></tr>';
+  } else {
+    tbody.innerHTML = overdue[0].values.map(o => `<tr>
+      <td>${o[0]}</td><td>${o[1]}</td>
+      <td style="color:var(--danger);font-weight:600">${o[2]} days</td>
+    </tr>`).join('');
+  }
+}
+
+// ========== SQL CONSOLE ==========
+function runSQL() {
+  const sql = document.getElementById('sql-input').value.trim();
+  if (!sql) { toast('Enter a SQL query', 'error'); return; }
+  const resultDiv = document.getElementById('sql-result');
+  const inner = document.getElementById('sql-result-inner');
+  try {
+    const res = db.exec(sql);
+    resultDiv.style.display = 'block';
+    if (!res.length) {
+      inner.innerHTML = '<div style="color:var(--success);font-family:\'DM Mono\',monospace;padding:8px">✅ Query executed successfully. Rows affected.</div>';
+      return;
+    }
+    const r = res[0];
+    const html = `
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:10px;letter-spacing:1px">${r.values.length} ROW(S) RETURNED</div>
+      <div style="overflow-x:auto">
+      <table style="font-family:'DM Mono',monospace;font-size:12px">
+        <thead><tr>${r.columns.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${r.values.map(row => `<tr>${row.map(v => `<td>${v===null?'<span style="color:var(--text3)">NULL</span>':v}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+    `;
+    inner.innerHTML = html;
+  } catch(e) {
+    resultDiv.style.display = 'block';
+    inner.innerHTML = `<div style="color:var(--danger);font-family:'DM Mono',monospace;padding:8px">❌ ${e.message}</div>`;
+  }
+}
+
+function setSQLTemplate(sql) {
+  document.getElementById('sql-input').value = typeof sql === 'string' ? sql : schemaSQL;
+}
+
+// ========== POPULATE SELECTS ==========
+function populateSelects() {
+  if (!db) return;
+  // Customers
+  const customers = db.exec(`SELECT id, name FROM customers ORDER BY name`);
+  const custOpts = customers.length ? customers[0].values.map(c => `<option value="${c[0]}">${c[1]}</option>`).join('') : '';
+  ['r-customer', 'p-rental'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">Select...</option>${custOpts}`;
+  });
+
+  // Available equipment for rental
+  const avail = db.exec(`SELECT id, name, status FROM equipment WHERE status='Available' ORDER BY name`);
+  const eqOpts = avail.length ? avail[0].values.map(e => `<option value="${e[0]}">${e[1]}</option>`).join('') : '';
+  const rEq = document.getElementById('r-equipment');
+  if (rEq) rEq.innerHTML = `<option value="">Select equipment...</option>${eqOpts}`;
+
+  // All equipment for damage
+  const allEq = db.exec(`SELECT id, name FROM equipment ORDER BY name`);
+  const allEqOpts = allEq.length ? allEq[0].values.map(e => `<option value="${e[0]}">${e[1]}</option>`).join('') : '';
+  const dEq = document.getElementById('d-equipment');
+  if (dEq) dEq.innerHTML = `<option value="">Select...</option>${allEqOpts}`;
+
+  // Rentals for payment / damage
+  const rentals = db.exec(`SELECT r.id, c.name, e.name FROM rentals r JOIN customers c ON r.customer_id=c.id JOIN equipment e ON r.equipment_id=e.id ORDER BY r.id DESC`);
+  const rentalOpts = rentals.length ? rentals[0].values.map(r => `<option value="${r[0]}">R#${r[0]} — ${r[1]} / ${r[2]}</option>`).join('') : '';
+  ['p-rental', 'd-rental'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">Select rental...</option>${rentalOpts}`;
+  });
+}
+
+// Override openModal to populate selects
+const _openModal = openModal;
+window.openModal = function(id) {
+  populateSelects();
+  // Set default dates for rental
+  if (id === 'modal-rental') {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('r-start').value = today;
+    const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+    document.getElementById('r-end').value = nextWeek;
+    document.getElementById('rental-calc').style.display = 'none';
+    ['r-customer','r-equipment','r-notes'].forEach(id2 => document.getElementById(id2).value='');
+  }
+  document.getElementById(id).classList.add('open');
+};
+
+// ========== BADGES / HELPERS ==========
+function statusBadge(s) {
+  const map = { Active:'badge-blue', Returned:'badge-green', Overdue:'badge-red' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function eqStatusBadge(s) {
+  const map = { Available:'badge-green', Rented:'badge-blue', Maintenance:'badge-yellow' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function condBadge(c) {
+  const map = { Excellent:'badge-green', Good:'badge-blue', Fair:'badge-yellow', Damaged:'badge-red' };
+  return `<span class="badge ${map[c]||'badge-gray'}">${c}</span>`;
+}
+function payTypeBadge(t) {
+  const map = { Rental:'badge-blue', Deposit:'badge-green', 'Late Fee':'badge-red', Damage:'badge-yellow', Refund:'badge-gray' };
+  return `<span class="badge ${map[t]||'badge-gray'}">${t}</span>`;
+}
+function depositStatusBadge(s) {
+  const map = { Pending:'badge-yellow', Processed:'badge-green', Waived:'badge-gray' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+function damageStatusBadge(s) {
+  const map = { Pending:'badge-red', 'Under Repair':'badge-yellow', Repaired:'badge-green' };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+
+// ========== TOAST ==========
+function toast(msg, type='info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span> ${msg}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function loadEquipment() {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/equipment");
+        const data = await response.json();
+
+        console.log("Equipment Data:", data);
+
+        const container = document.getElementById("equipmentList");
+
+        if (container) {
+            data.forEach(item => {
+                const div = document.createElement("div");
+                div.innerHTML = `
+                    <h3>${item.name}</h3>
+                    <p>Daily Rate: ${item.daily_rate}</p>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+    } catch (error) {
+        console.error("Error loading equipment:", error);
+    }
+}
+
+loadEquipment();
+
+// ========== INIT ==========
+initDB();
+</script>
+</body>
+</html>
