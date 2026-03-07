@@ -1,7 +1,8 @@
 DB_CONFIG = {
-    'host': ' 192.168.56.1',
-    'user': 'rentflow',       # ← Change to your MySQL username
-    'password': 'password',       # ← Change to your MySQL password
+    'host':     'maglev.proxy.rlwy.net',
+    'port':      50013,
+    'user':     'root',
+    'password': 'qaWhtljpmFJDWNUIFZlSyxdvFweRSvSd',
     'database': 'rentflow_db',
-    'charset': 'utf8mb4'
+    'charset':  'utf8mb4'
 }
