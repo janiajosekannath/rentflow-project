@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RentFlow — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg1: #0d0f1a; --bg2: #131625; --bg3: #1a1e30; --bg4: #1f2438;
+      --border: #2a2f4a; --text: #e8eaf6; --text2: #8b90b0;
+      --accent: #7c74ff; --accent2: #a78bfa; --green: #34d399;
+      --danger: #ff4d6a; --gold: #f59e0b; --radius: 14px; --radius2: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg1);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      overflow: auto;
+    }
+
+    /* LEFT PANEL */
+    .left-panel {
+      width: 55%;
+      background: var(--bg2);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+    .left-panel::before {
+      content: ''; position: absolute; width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,116,255,0.12) 0%, transparent 70%);
+      top: -100px; left: -100px; pointer-events: none;
+    }
+    .left-panel::after {
+      content: ''; position: absolute; width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%);
+      bottom: -80px; right: -80px; pointer-events: none;
+    }
+    .grid-bg {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(124,116,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,116,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .brand {
+      position: absolute; top: 40px; left: 60px;
+      font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: -0.5px;
+    }
+    .hero-content { position: relative; z-index: 1; text-align: left; max-width: 480px; width: 100%; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,116,255,0.12); border: 1px solid rgba(124,116,255,0.25);
+      color: var(--accent2); font-size: 11px; font-weight: 500;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 5px 12px; border-radius: 20px; margin-bottom: 28px;
+    }
+    .badge::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
+    }
+    .hero-title {
+      font-family: 'Syne', sans-serif; font-size: 42px; font-weight: 800;
+      line-height: 1.15; letter-spacing: -1px; margin-bottom: 18px; color: var(--text);
+    }
+    .hero-title span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-desc { color: var(--text2); font-size: 15px; line-height: 1.7; margin-bottom: 40px; }
+    .stats-row { display: flex; gap: 24px; }
+    .stat-card {
+      flex: 1; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius2); padding: 18px 20px; position: relative; overflow: hidden;
+    }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+    .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), transparent); }
+    .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--green), transparent); }
+    .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--gold), transparent); }
+    .stat-icon { font-size: 20px; margin-bottom: 8px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+    .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* RIGHT PANEL */
+    .right-panel {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 50px 50px;
+      background: var(--bg1);
+      overflow-y: auto;
+      height: 100vh;
+      position: sticky;
+      top: 0;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      padding: 20px 0;
+      animation: fadeUp 0.6s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-header { margin-bottom: 24px; }
+    .login-header h2 {
+      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700;
+      color: var(--text); margin-bottom: 6px;
+    }
+    .login-header p { color: var(--text2); font-size: 14px; }
+
+    /* Role Toggle */
+    .role-toggle {
+      display: flex; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius2); padding: 4px; margin-bottom: 18px;
+    }
+    .role-btn {
+      flex: 1; padding: 9px; border: none; border-radius: 6px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.25s ease; background: transparent; color: var(--text2);
+    }
+    .role-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(124,116,255,0.35); }
+
+    /* Tab Switch */
+    .tab-switch {
+      display: none; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius2); padding: 4px; margin-bottom: 18px;
+    }
+    .tab-btn {
+      flex: 1; padding: 8px; border: none; border-radius: 6px;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.25s ease; background: transparent; color: var(--text2);
+    }
+    .tab-btn.active { background: var(--bg4); color: var(--text); border: 1px solid var(--border); }
+
+    .form-section { display: none; }
+    .form-section.active { display: block; animation: fadeUp 0.3s ease both; }
+
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block; font-size: 12px; font-weight: 500; color: var(--text2);
+      letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 7px;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text2); font-size: 14px; pointer-events: none;
+    }
+    input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius2); color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px;
+      padding: 11px 14px 11px 40px; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,116,255,0.15); }
+    input::placeholder { color: #4a5070; }
+    .eye-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--text2); font-size: 14px;
+    }
+
+    .remember-row { display: flex; align-items: center; margin-bottom: 18px; }
+    .remember { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); cursor: pointer; }
+    .remember input[type="checkbox"] { width: 15px; height: 15px; padding: 0; accent-color: var(--accent); }
+
+    .btn-main {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, var(--accent), #9f8bff);
+      border: none; border-radius: var(--radius2); color: #fff;
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.02em; transition: all 0.25s ease;
+      box-shadow: 0 4px 18px rgba(124,116,255,0.35);
+    }
+    .btn-main:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,116,255,0.45); }
+    .btn-main:active { transform: translateY(0); }
+
+    .btn-secondary {
+      width: 100%; padding: 12px; margin-top: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: var(--radius2); color: var(--text2);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+
+    .admin-note {
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: var(--radius2); padding: 11px 14px; font-size: 12.5px;
+      color: #fbbf24; display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+    }
+    .admin-note.hidden { display: none; }
+
+    .error-msg {
+      background: rgba(255,77,106,0.1); border: 1px solid rgba(255,77,106,0.25);
+      border-radius: var(--radius2); padding: 10px 14px; font-size: 13px;
+      color: var(--danger); margin-bottom: 12px; display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .success-msg {
+      background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.25);
+      border-radius: var(--radius2); padding: 10px 14px; font-size: 13px;
+      color: var(--green); margin-bottom: 12px; display: none;
+    }
+    .success-msg.show { display: block; }
+
+    .divider {
+      display: flex; align-items: center; gap: 12px; margin: 16px 0;
+      color: var(--text2); font-size: 12px;
+    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    .two-col { display: flex; gap: 12px; }
+    .two-col .form-group { flex: 1; }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .left-panel { display: none; }
+      .right-panel { width: 100%; padding: 40px 24px; height: auto; position: relative; }
+    }
+  </style>
+</head>
+<body>
+
+  
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="login-box">
+
+      <div class="login-header">
+        <h2 id="main-title">Welcome back</h2>
+        <p id="main-subtitle">Sign in to your RentFlow account</p>
+      </div>
+
+      <!-- Role Toggle -->
+      <div class="role-toggle">
+        <button class="role-btn active" id="btn-admin" onclick="switchRole('admin')">🔐 Admin</button>
+        <button class="role-btn" id="btn-client" onclick="switchRole('client')">👤 Client</button>
+      </div>
+
+      <!-- Admin Note -->
+      <div class="admin-note" id="admin-note">
+        🛡️ Admin access grants full system control. Use your admin credentials.
+      </div>
+
+      <!-- Login / Signup Tab (Client only) -->
+      <div class="tab-switch" id="tab-switch">
+        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="error-msg" id="error-msg"></div>
+      <div class="success-msg" id="success-msg"></div>
+
+      <!-- LOGIN FORM -->
+      <div class="form-section active" id="section-login">
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" id="login-email" placeholder="you@rentflow.com"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="login-password" placeholder="Enter your password"/>
+            <button class="eye-btn" onclick="togglePass('login-password','eye1')" id="eye1">👁</button>
+          </div>
+        </div>
+        <div class="remember-row">
+          <label class="remember">
+            <input type="checkbox"/> Remember me
+          </label>
+        </div>
+        <button class="btn-main" onclick="handleLogin()" id="login-btn">Sign In</button>
+      </div>
+
+      <!-- SIGNUP FORM (Client only) -->
+      <div class="form-section" id="section-signup">
+        <div class="two-col">
+          <div class="form-group">
+            <label>First Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="signup-fname" placeholder="John"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">👤</span>
+              <input type="text" id="signup-lname" placeholder="Doe"/>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" id="signup-email" placeholder="you@email.com"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <div class="input-wrap">
+            <span class="input-icon">📞</span>
+            <input type="tel" id="signup-phone" placeholder="+91 XXXXX XXXXX"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-password" placeholder="Create a password (min 6 chars)"/>
+            <button class="eye-btn" onclick="togglePass('signup-password','eye2')" id="eye2">👁</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-confirm" placeholder="Repeat your password"/>
+            <button class="eye-btn" onclick="togglePass('signup-confirm','eye3')" id="eye3">👁</button>
+          </div>
+        </div>
+        <button class="btn-main" onclick="handleSignup()" id="signup-btn">Create Account</button>
+        <button class="btn-secondary" onclick="switchTab('login')">← Back to Sign In</button>
+      </div>
+
+      <div class="divider" id="help-divider">or</div>
+      <div style="text-align:center; font-size:13px; color: var(--text2);">
+        Need help? Contact <a href="mailto:support@rentflow.com" style="color:var(--accent2); text-decoration:none;">support@rentflow.com</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let currentRole = 'admin';
+    let currentTab  = 'login';
+
+    function switchRole(role) {
+      currentRole = role;
+      document.getElementById('btn-admin').classList.toggle('active', role === 'admin');
+      document.getElementById('btn-client').classList.toggle('active', role === 'client');
+      document.getElementById('admin-note').classList.toggle('hidden', role !== 'admin');
+      const ts = document.getElementById('tab-switch');
+      ts.style.display = role === 'client' ? 'flex' : 'none';
+      hideMessages();
+      if (role === 'admin') {
+        switchTab('login');
+        document.getElementById('main-title').textContent = 'Welcome back';
+        document.getElementById('main-subtitle').textContent = 'Sign in to your RentFlow account';
+      } else {
+        document.getElementById('main-title').textContent = 'Client Portal';
+        document.getElementById('main-subtitle').textContent = 'Sign in or create a new account';
+      }
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('section-login').classList.toggle('active', tab === 'login');
+      document.getElementById('section-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+      document.getElementById('help-divider').style.display = tab === 'signup' ? 'none' : 'flex';
+      hideMessages();
+    }
+
+    function togglePass(id, btnId) {
+      const inp = document.getElementById(id);
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      document.getElementById(btnId).textContent = show ? '🙈' : '👁';
+    }
+
+    function hideMessages() {
+      document.getElementById('error-msg').classList.remove('show');
+      document.getElementById('success-msg').classList.remove('show');
+    }
+    function showError(msg) {
+      const e = document.getElementById('error-msg');
+      e.textContent = msg; e.classList.add('show');
+    }
+    function showSuccess(msg) {
+      const e = document.getElementById('success-msg');
+      e.textContent = msg; e.classList.add('show');
+    }
+
+    function handleLogin() {
+      const email    = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const btn      = document.getElementById('login-btn');
+      hideMessages();
+      if (!email || !password) { showError('Please enter your email and password.'); return; }
+      btn.textContent = 'Signing in...'; btn.disabled = true;
+
+      fetch('http://127.0.0.1:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role: currentRole })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          localStorage.setItem('rentflow_user', JSON.stringify(data.data));
+          window.location.href = currentRole === 'admin' ? 'index.html' : 'client.html';
+        } else {
+          showError(data.message || 'Invalid credentials.');
+          btn.textContent = 'Sign In'; btn.disabled = false;
+        }
+      })
+      .catch(() => {
+        showError('Cannot connect to server. Is Flask running?');
+        btn.textContent = 'Sign In'; btn.disabled = false;
+      });
+    }
+
+    function handleSignup() {
+      const fname    = document.getElementById('signup-fname').value.trim();
+      const lname    = document.getElementById('signup-lname').value.trim();
+      const email    = document.getElementById('signup-email').value.trim();
+      const phone    = document.getElementById('signup-phone').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const confirm  = document.getElementById('signup-confirm').value;
+      const btn      = document.getElementById('signup-btn');
+      hideMessages();
+
+      if (!fname || !lname || !email || !phone || !password || !confirm) {
+        showError('Please fill in all fields.'); return;
+      }
+      if (password !== confirm) { showError('Passwords do not match.'); return; }
+      if (password.length < 6)  { showError('Password must be at least 6 characters.'); return; }
+
+      btn.textContent = 'Creating account...'; btn.disabled = true;
+
+      fetch('http://127.0.0.1:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fname + ' ' + lname, email, phone, password, role: 'client' })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          showSuccess('Account created successfully! You can now sign in. ✅');
+          setTimeout(() => switchTab('login'), 2000);
+        } else {
+          showError(data.message || 'Registration failed. Email may already exist.');
+        }
+        btn.textContent = 'Create Account'; btn.disabled = false;
+      })
+      .catch(() => {
+        showError('Cannot connect to server. Is Flask running?');
+        btn.textContent = 'Create Account'; btn.disabled = false;
+      });
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') currentTab === 'login' ? handleLogin() : handleSignup();
+    });
+  </script>
+</body>
+</html>

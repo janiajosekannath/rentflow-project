@@ -1,10 +1,16 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request,send_from_directory
 from flask_cors import CORS
 import mysql.connector
 from config import DB_CONFIG
 
+
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+@app.route("/frontend/<path:filename>")
+def frontend(filename):
+    return send_from_directory("../frontend", filename)
+
 
 # ─────────────────────────────────────────────
 #  Helper
@@ -28,6 +34,46 @@ def err(msg, code=400):
 def home():
     return "RentFlow Backend Running ✅"
 
+
+# ─────────────────────────────────────────────
+#  AUTH
+# ─────────────────────────────────────────────
+@app.route("/login", methods=["POST"])
+def login():
+    d = request.json
+    email    = d.get("email", "").strip()
+    password = d.get("password", "")
+    role     = d.get("role", "")
+
+    conn, cur = get_db()
+    try:
+        cur.execute("""
+            SELECT * FROM admins WHERE email=%s AND password=%s AND role=%s
+        """, (email, password, role))
+        user = cur.fetchone()
+
+        if user:
+            return ok({"name": user["name"], "role": user["role"]}, "Login successful")
+        else:
+            return err("Invalid email, password, or role", 401)
+    finally:
+        cur.close(); conn.close()
+
+@app.route("/register", methods=["POST"])
+def register():
+    d = request.json
+    conn, cur = get_db()
+    try:
+        cur.execute("""
+            INSERT INTO admins (name, email, password, role)
+            VALUES (%s, %s, %s, 'client')
+        """, (d["name"], d["email"], d["password"]))
+        conn.commit()
+        return ok({"id": cur.lastrowid}, "Account created successfully")
+    except mysql.connector.IntegrityError:
+        return err("Email already registered")
+    finally:
+        cur.close(); conn.close()
 
 # ─────────────────────────────────────────────
 #  DASHBOARD

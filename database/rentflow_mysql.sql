@@ -24,6 +24,21 @@ CREATE TABLE customers (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- TABLE 3: admin
+-- ============================================================
+CREATE TABLE admins (
+    id       INT AUTO_INCREMENT PRIMARY KEY,
+    name     VARCHAR(100),
+    email    VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role     ENUM('admin', 'client') DEFAULT 'admin'
+);
+
+-- Insert a test admin
+INSERT INTO admins (name, email, password, role)
+VALUES ('Admin User', 'admin@rentflow.com', 'admin123', 'admin');
+
+-- ============================================================
 -- TABLE 2: equipment
 -- ============================================================
 CREATE TABLE equipment (
