@@ -455,7 +455,7 @@
 
       btn.textContent = 'Creating account...'; btn.disabled = true;
 
-      fetch('http://127.0.0.1:5000/register', {
+      fetch('http://127.0.0.1:5500/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: fname + ' ' + lname, email, phone, password, role: 'client' })
