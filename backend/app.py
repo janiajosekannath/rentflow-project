@@ -53,7 +53,26 @@ def login():
         user = cur.fetchone()
 
         if user:
-            return ok({"name": user["name"], "role": user["role"]}, "Login successful")
+            user_data = {
+                "id":    user["id"],
+                "name":  user["name"],
+                "email": user["email"],
+                "role":  user["role"],
+            }
+            # For clients, also fetch phone/address/id_proof from customers table
+            if user["role"] == "client":
+                cur.execute("""
+                    SELECT phone, address, id_proof_type, id_proof_number, created_at
+                    FROM customers WHERE email = %s LIMIT 1
+                """, (email,))
+                customer = cur.fetchone()
+                if customer:
+                    user_data["phone"]           = customer["phone"]
+                    user_data["address"]         = customer["address"]
+                    user_data["id_proof_type"]   = customer["id_proof_type"]
+                    user_data["id_proof_number"] = customer["id_proof_number"]
+                    user_data["created_at"]      = str(customer["created_at"]) if customer["created_at"] else None
+            return ok(user_data, "Login successful")
         else:
             return err("Invalid email, password, or role", 401)
     finally:
@@ -68,6 +87,13 @@ def register():
             INSERT INTO admins (name, email, password, role)
             VALUES (%s, %s, %s, 'client')
         """, (d["name"], d["email"], d["password"]))
+
+        # Auto-create customer record so client appears in admin's list
+        cur.execute("""
+            INSERT IGNORE INTO customers (name, phone, email)
+            VALUES (%s, %s, %s)
+        """, (d["name"], d.get("phone", ""), d["email"]))
+
         conn.commit()
         return ok({"id": cur.lastrowid}, "Account created successfully")
     except mysql.connector.IntegrityError:

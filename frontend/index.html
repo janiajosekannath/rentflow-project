@@ -112,17 +112,30 @@
   .detail-value { font-weight:500; }
   tr.overdue td { color:var(--danger) !important; }
   .amount { font-family:'DM Mono',monospace; }
-  .profile-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:500px; }
+
+  /* ── PROFILE (enhanced for client) ── */
+  .profile-layout { display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:start; }
+  .profile-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px; }
   .profile-avatar { width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px; }
   .profile-name { font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px; }
   .profile-role { font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px; }
-  .profile-info { display:flex;flex-direction:column;gap:12px; }
-  .profile-row { display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px; }
+  .profile-info { display:flex;flex-direction:column;gap:0; }
+  .profile-row { display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);font-size:13.5px; }
   .profile-row:last-child { border-bottom:none; }
-  ::-webkit-scrollbar { width:6px;height:6px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
-  @media(max-width:900px) { .stats-grid { grid-template-columns:1fr 1fr; } .dashboard-grid { grid-column:1; } }
+  .profile-row-label { color:var(--text2);font-size:12px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px; }
+  .profile-row-value { font-weight:500;text-align:right;max-width:60%; }
+  .profile-section-title { font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px; }
+  .id-proof-box { background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;display:flex;align-items:center;gap:14px;margin-top:4px; }
+  .id-proof-icon { font-size:26px; }
+  .id-proof-details { flex:1; }
+  .id-proof-type { font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px; }
+  .id-proof-number { font-family:'DM Mono',monospace;font-size:14px;color:var(--text);font-weight:500;letter-spacing:1px; }
+
+  /* ── CLIENT DASHBOARD CARDS ── */
+  .client-stats-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px; }
+  .client-dash-grid { display:grid;grid-template-columns:1fr;gap:20px; }
+
+  @media(max-width:900px) { .stats-grid { grid-template-columns:1fr 1fr; } .dashboard-grid { grid-column:1; } .profile-layout { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -133,9 +146,7 @@
     <div class="logo-title">RentFlow</div>
     <div class="logo-sub" id="role-label">DBMS Project · Rental System</div>
   </div>
-  <nav class="nav" id="sidebar-nav">
-    <!-- Filled by JS based on role -->
-  </nav>
+  <nav class="nav" id="sidebar-nav"></nav>
   <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
   <div class="sidebar-footer" id="db-status">v1.0 · MySQL + Flask · 7 Tables</div>
 </aside>
@@ -143,7 +154,9 @@
 <!-- MAIN CONTENT -->
 <main class="main">
 
-  <!-- DASHBOARD -->
+  <!-- ══════════════════════════════════════════════
+       DASHBOARD  (admin view + client view share this page)
+  ══════════════════════════════════════════════ -->
   <div id="page-dashboard" class="page active">
     <div class="page-header">
       <div>
@@ -152,13 +165,23 @@
       </div>
       <button class="btn btn-secondary" onclick="loadDashboard()">↻ Refresh</button>
     </div>
-    <div class="stats-grid">
+
+    <!-- ADMIN stats -->
+    <div class="stats-grid" id="admin-stats">
       <div class="stat-card blue"><div class="stat-icon">🔧</div><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Equipment</div></div>
       <div class="stat-card green"><div class="stat-icon">✅</div><div class="stat-value" id="s-avail">—</div><div class="stat-label">Available Now</div></div>
       <div class="stat-card pink"><div class="stat-icon">📋</div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active Rentals</div></div>
       <div class="stat-card orange"><div class="stat-icon">⏰</div><div class="stat-value" id="s-overdue">—</div><div class="stat-label">Overdue Returns</div></div>
     </div>
-    <!-- Admin only tables -->
+
+    <!-- CLIENT stats (3 cards: my rentals, active, late fees) -->
+    <div class="client-stats-grid" id="client-stats" style="display:none">
+      <div class="stat-card blue"><div class="stat-icon">📋</div><div class="stat-value" id="cs-total">—</div><div class="stat-label">My Total Rentals</div></div>
+      <div class="stat-card green"><div class="stat-icon">🟢</div><div class="stat-value" id="cs-active">—</div><div class="stat-label">Active / Overdue</div></div>
+      <div class="stat-card orange"><div class="stat-icon">⏰</div><div class="stat-value amount" id="cs-latefee">—</div><div class="stat-label">My Late Fees Due</div></div>
+    </div>
+
+    <!-- ADMIN tables -->
     <div class="dashboard-grid" id="admin-dash-tables">
       <div class="section-card">
         <div class="section-card-header"><div class="section-card-title">Recent Rentals</div></div>
@@ -169,6 +192,29 @@
         <div class="section-card-header"><div class="section-card-title">Pending Payments</div></div>
         <table><thead><tr><th>Customer</th><th>Type</th><th>Amount</th></tr></thead>
         <tbody id="dash-payments"></tbody></table>
+      </div>
+    </div>
+
+    <!-- CLIENT rental table -->
+    <div class="client-dash-grid" id="client-dash-tables" style="display:none">
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">My Rentals</div>
+          <span class="badge badge-blue" id="client-rental-count">0 rentals</span>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due Date</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody id="client-dash-rentals"></tbody>
+        </table>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header">
+          <div class="section-card-title">My Late Fees</div>
+        </div>
+        <table>
+          <thead><tr><th>Rental ID</th><th>Equipment</th><th>Days Late</th><th>Fee/Day</th><th>Total Fee</th><th>Status</th></tr></thead>
+          <tbody id="client-dash-latefees"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -313,26 +359,89 @@
     </div>
   </div>
 
-  <!-- PROFILE PAGE (client) -->
+  <!-- ══════════════════════════════════════════════
+       PROFILE PAGE  (client — shows ALL collected data)
+  ══════════════════════════════════════════════ -->
   <div id="page-profile" class="page">
     <div class="page-header">
       <div><div class="page-title">My Profile</div><div class="page-subtitle">Your account information</div></div>
+      <button class="btn btn-primary" onclick="openEditProfile()">✏️ Edit Profile</button>
     </div>
-    <div class="profile-card">
-      <div class="profile-avatar">👤</div>
-      <div class="profile-name" id="profile-name">—</div>
-      <div class="profile-role" id="profile-role">—</div>
-      <div class="profile-info">
-        <div class="profile-row"><span style="color:var(--text2)">Email</span><span id="profile-email">—</span></div>
-        <div class="profile-row"><span style="color:var(--text2)">Role</span><span id="profile-role2">—</span></div>
-        <div class="profile-row"><span style="color:var(--text2)">Account Type</span><span class="badge badge-blue">Client</span></div>
+    <div class="profile-layout">
+
+      <!-- Left: identity card -->
+      <div class="profile-card">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-role" id="profile-role">CLIENT</div>
+
+        <div class="profile-section-title">Contact Details</div>
+        <div class="profile-info">
+          <div class="profile-row">
+            <span class="profile-row-label">Email</span>
+            <span class="profile-row-value" id="profile-email">—</span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row-label">Phone</span>
+            <span class="profile-row-value" id="profile-phone">
+              <span style="color:var(--text3);font-style:italic;font-size:12px">Not added</span>
+            </span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row-label">Address</span>
+            <span class="profile-row-value" id="profile-address" style="color:var(--text2);font-size:13px">
+              <span style="color:var(--text3);font-style:italic;font-size:12px">Not added</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="profile-section-title">Account</div>
+        <div class="profile-info">
+          <div class="profile-row">
+            <span class="profile-row-label">Role</span>
+            <span class="profile-row-value"><span class="badge badge-blue">Client</span></span>
+          </div>
+          <div class="profile-row">
+            <span class="profile-row-label">Member Since</span>
+            <span class="profile-row-value" id="profile-since" style="font-family:'DM Mono',monospace;font-size:12px">—</span>
+          </div>
+        </div>
+
+        <div class="profile-section-title">ID Proof</div>
+        <div class="id-proof-box" id="profile-idproof-box">
+          <div class="id-proof-icon" id="profile-id-icon">🪪</div>
+          <div class="id-proof-details">
+            <div class="id-proof-type" id="profile-id-type" style="color:var(--text3);font-style:italic">Not added</div>
+            <div class="id-proof-number" id="profile-id-number" style="color:var(--text3)">—</div>
+          </div>
+        </div>
+
+        <!-- incomplete banner -->
+        <div id="profile-incomplete-banner" style="display:none;margin-top:16px;background:rgba(255,190,69,0.1);border:1px solid rgba(255,190,69,0.25);border-radius:var(--radius2);padding:12px 14px;font-size:12.5px;color:var(--warning);">
+          ⚠️ Your profile is incomplete. Click <strong>Edit Profile</strong> to add missing details.
+        </div>
       </div>
+
+      <!-- Right: rental history -->
+      <div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-title">My Rental History</div>
+            <span class="badge badge-blue" id="profile-rental-count">0 rentals</span>
+          </div>
+          <table>
+            <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="profile-rentals-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
 </main>
 
-<!-- MODALS -->
+<!-- ══ MODALS ══ -->
 <div class="modal-overlay" id="modal-customer">
   <div class="modal">
     <div class="modal-header">
@@ -501,6 +610,59 @@
   </div>
 </div>
 
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" id="modal-edit-profile">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Profile</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:18px;">Update your contact details and ID proof. These are visible to the admin for rental processing.</p>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Full Name</label>
+          <input type="text" id="ep-name" placeholder="Your full name" disabled style="opacity:0.5;cursor:not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="ep-email" placeholder="your@email.com" disabled style="opacity:0.5;cursor:not-allowed;">
+        </div>
+        <div class="form-group">
+          <label>Phone *</label>
+          <input type="tel" id="ep-phone" placeholder="+91 9876543210">
+        </div>
+        <div class="form-group full">
+          <label>Address</label>
+          <textarea id="ep-address" placeholder="Your full address..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>ID Proof Type</label>
+          <select id="ep-idtype">
+            <option value="">-- Select --</option>
+            <option>Aadhar Card</option>
+            <option>PAN Card</option>
+            <option>Passport</option>
+            <option>Driving License</option>
+            <option>Voter ID</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ID Number</label>
+          <input type="text" id="ep-idnum" placeholder="XXXX-XXXX-XXXX">
+        </div>
+      </div>
+      <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:var(--radius2);padding:10px 14px;margin-top:8px;font-size:12px;color:var(--text2);">
+        🔒 Name and email cannot be changed. Contact admin if needed.
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-profile')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditProfile()">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toast-container"></div>
 
 <script>
@@ -557,11 +719,12 @@ function buildSidebar() {
         <button class="nav-btn" onclick="showPage('rentals',this)"><span class="icon">📋</span> Rent Items</button>
         <button class="nav-btn" onclick="showPage('profile',this)"><span class="icon">👤</span> Profile Page</button>
       </div>`;
-    // Hide admin-only elements
     document.querySelectorAll('.admin-only-elem').forEach(el => el.style.display = 'none');
     document.getElementById('admin-dash-tables').style.display = 'none';
+    document.getElementById('admin-stats').style.display = 'none';
+    document.getElementById('client-stats').style.display = 'grid';
+    document.getElementById('client-dash-tables').style.display = 'grid';
     document.getElementById('eq-actions-header').style.display = 'none';
-    // Update dashboard text
     document.getElementById('dash-title').textContent = 'Welcome, ' + (_user.name || 'Client');
     document.getElementById('dash-subtitle').textContent = 'Here\'s your rental overview';
   }
@@ -645,11 +808,14 @@ function showPage(page, btn) {
 async function loadDashboard() {
   try {
     const d = await api('/dashboard');
-    document.getElementById('s-total').textContent = d.total_equipment;
-    document.getElementById('s-avail').textContent = d.available_equipment;
-    document.getElementById('s-active').textContent = d.active_rentals;
-    document.getElementById('s-overdue').textContent = d.overdue_rentals;
+
     if (_role === 'admin') {
+      // Admin: show global stats
+      document.getElementById('s-total').textContent   = d.total_equipment;
+      document.getElementById('s-avail').textContent   = d.available_equipment;
+      document.getElementById('s-active').textContent  = d.active_rentals;
+      document.getElementById('s-overdue').textContent = d.overdue_rentals;
+
       const tbody = document.getElementById('dash-rentals');
       tbody.innerHTML = d.recent_rentals.length
         ? d.recent_rentals.map(r => `<tr>
@@ -658,6 +824,7 @@ async function loadDashboard() {
             <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
           </tr>`).join('')
         : '<tr class="empty-row"><td colspan="4">No rentals yet</td></tr>';
+
       const tbody2 = document.getElementById('dash-payments');
       tbody2.innerHTML = d.pending_items.length
         ? d.pending_items.map(p => `<tr>
@@ -666,7 +833,61 @@ async function loadDashboard() {
             <td class="amount">₹${Number(p.amount).toLocaleString()}</td>
           </tr>`).join('')
         : '<tr class="empty-row"><td colspan="3">No pending items</td></tr>';
+
+    } else {
+      // ── CLIENT dashboard: only show this client's data ──
+      const allRentals = await api('/rentals?search=');
+      const myRentals  = allRentals.filter(r => r.customer === _user.name);
+
+      // Stats
+      const myActive = myRentals.filter(r => r.status === 'Active' || r.status === 'Overdue').length;
+      document.getElementById('cs-total').textContent  = myRentals.length;
+      document.getElementById('cs-active').textContent = myActive;
+
+      // Late fees: fetch and filter by client name
+      let myLateFeeTotal = 0;
+      let myLateFees = [];
+      try {
+        const allLF = await api('/late_fees');
+        myLateFees = allLF.filter(lf => lf.customer === _user.name);
+        myLateFeeTotal = myLateFees
+          .filter(lf => lf.payment_status === 'Unpaid')
+          .reduce((sum, lf) => sum + Number(lf.total_fee), 0);
+      } catch(e) {}
+      document.getElementById('cs-latefee').textContent = myLateFeeTotal > 0
+        ? `₹${myLateFeeTotal.toLocaleString()}`
+        : '₹0';
+
+      // My rentals table
+      document.getElementById('client-rental-count').textContent = `${myRentals.length} rentals`;
+      const rtbody = document.getElementById('client-dash-rentals');
+      rtbody.innerHTML = myRentals.length
+        ? myRentals.map(r => `<tr class="${r.status==='Overdue'?'overdue':''}">
+            <td style="color:var(--text3);font-family:'DM Mono',monospace">#${r.id}</td>
+            <td style="font-weight:500">${r.equipment}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">${r.start_date}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
+            <td class="amount">₹${Number(r.rental_amount).toLocaleString()}</td>
+            <td>${statusBadge(r.status)}</td>
+          </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="6">No rentals yet</td></tr>';
+
+      // My late fees table
+      const ltbody = document.getElementById('client-dash-latefees');
+      ltbody.innerHTML = myLateFees.length
+        ? myLateFees.map(lf => `<tr>
+            <td style="font-family:'DM Mono',monospace">R#${lf.rental_id}</td>
+            <td style="font-weight:500">${lf.equipment || '—'}</td>
+            <td style="color:var(--danger);font-weight:600">${lf.days_late} days</td>
+            <td class="amount">₹${Number(lf.fee_per_day).toLocaleString()}/day</td>
+            <td class="amount" style="color:var(--warning)">₹${Number(lf.total_fee).toLocaleString()}</td>
+            <td>${lf.payment_status === 'Paid'
+              ? '<span class="badge badge-green">Paid</span>'
+              : '<span class="badge badge-red">Unpaid</span>'}</td>
+          </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="6">No late fees 🎉</td></tr>';
     }
+
     document.getElementById('db-status').textContent = '✅ MySQL Connected · 7 Tables';
     document.getElementById('db-status').style.color = 'var(--success)';
   } catch(e) {
@@ -675,12 +896,148 @@ async function loadDashboard() {
   }
 }
 
-// ── PROFILE ──
-function loadProfile() {
-  document.getElementById('profile-name').textContent = _user.name || '—';
-  document.getElementById('profile-role').textContent = (_user.role || '—').toUpperCase();
-  document.getElementById('profile-email').textContent = _user.email || '—';
-  document.getElementById('profile-role2').textContent = _user.role || '—';
+// ── PROFILE (client — shows all collected data) ──
+const _idIconMap = {
+  'Aadhar Card':'🪪','PAN Card':'💳','Passport':'📘',
+  'Driving License':'🚗','Voter ID':'🗳️'
+};
+
+function _renderProfileFields(data) {
+  // data = customer row from /customers API  OR  _user from localStorage
+  document.getElementById('profile-name').textContent  = data.name  || '—';
+  document.getElementById('profile-email').textContent = data.email || '—';
+
+  const phone = data.phone || data.phone_number || '';
+  document.getElementById('profile-phone').innerHTML = phone
+    ? `<span>${phone}</span>`
+    : `<span style="color:var(--text3);font-style:italic;font-size:12px">Not added — click Edit Profile</span>`;
+
+  const addr = data.address || '';
+  document.getElementById('profile-address').innerHTML = addr
+    ? `<span>${addr}</span>`
+    : `<span style="color:var(--text3);font-style:italic;font-size:12px">Not added — click Edit Profile</span>`;
+
+  const since = data.created_at
+    ? String(data.created_at).split('T')[0]
+    : '—';
+  document.getElementById('profile-since').textContent = since;
+
+  const idType   = data.id_proof_type   || '';
+  const idNumber = data.id_proof_number || '';
+  if (idType) {
+    document.getElementById('profile-id-type').textContent   = idType;
+    document.getElementById('profile-id-type').style.fontStyle = 'normal';
+    document.getElementById('profile-id-type').style.color    = 'var(--text2)';
+    document.getElementById('profile-id-number').textContent  = idNumber || 'Number not added';
+    document.getElementById('profile-id-number').style.color  = idNumber ? 'var(--text)' : 'var(--text3)';
+    document.getElementById('profile-id-icon').textContent    = _idIconMap[idType] || '🪪';
+  } else {
+    document.getElementById('profile-id-type').textContent   = 'Not added — click Edit Profile';
+    document.getElementById('profile-id-type').style.fontStyle = 'italic';
+    document.getElementById('profile-id-type').style.color    = 'var(--text3)';
+    document.getElementById('profile-id-number').textContent  = '—';
+    document.getElementById('profile-id-icon').textContent    = '🪪';
+  }
+
+  // Show incomplete banner if anything missing
+  const incomplete = !phone || !addr || !idType || !idNumber;
+  document.getElementById('profile-incomplete-banner').style.display = incomplete ? 'block' : 'none';
+}
+
+async function loadProfile() {
+  // Start with what we have in localStorage immediately
+  _renderProfileFields(_user);
+
+  // Then fetch the fresh customer record from server
+  try {
+    const customers = await api('/customers?search=');
+    // Match by email first, fallback to name
+    const me = customers.find(c => c.email === _user.email) ||
+               customers.find(c => c.name  === _user.name);
+    if (me) {
+      // Update localStorage so next load is also fresh
+      const updated = { ..._user, ...me, role: _user.role };
+      localStorage.setItem('rentflow_user', JSON.stringify(updated));
+      _renderProfileFields(updated);
+    }
+  } catch(e) { /* use localStorage data if server unreachable */ }
+
+  // Load this client's rentals
+  try {
+    const allRentals = await api('/rentals?search=');
+    const myRentals  = allRentals.filter(r => r.customer === _user.name);
+    document.getElementById('profile-rental-count').textContent = `${myRentals.length} rental${myRentals.length !== 1 ? 's' : ''}`;
+    const tbody = document.getElementById('profile-rentals-tbody');
+    tbody.innerHTML = myRentals.length
+      ? myRentals.map(r => `<tr class="${r.status==='Overdue'?'overdue':''}">
+          <td style="color:var(--text3);font-family:'DM Mono',monospace">#${r.id}</td>
+          <td style="font-weight:500">${r.equipment}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px">${r.start_date}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
+          <td class="amount">₹${Number(r.rental_amount).toLocaleString()}</td>
+          <td>${statusBadge(r.status)}</td>
+        </tr>`).join('')
+      : '<tr class="empty-row"><td colspan="6">No rental history yet</td></tr>';
+  } catch(e) {}
+}
+
+// Open edit profile modal — pre-fill with current data
+function openEditProfile() {
+  const u = JSON.parse(localStorage.getItem('rentflow_user') || '{}');
+  document.getElementById('ep-name').value    = u.name  || '';
+  document.getElementById('ep-email').value   = u.email || '';
+  document.getElementById('ep-phone').value   = u.phone || '';
+  document.getElementById('ep-address').value = u.address || '';
+  document.getElementById('ep-idtype').value  = u.id_proof_type   || '';
+  document.getElementById('ep-idnum').value   = u.id_proof_number || '';
+  document.getElementById('modal-edit-profile').classList.add('open');
+}
+
+// Save edited profile — updates /customers record
+async function saveEditProfile() {
+  const phone   = document.getElementById('ep-phone').value.trim();
+  const address = document.getElementById('ep-address').value.trim();
+  const idType  = document.getElementById('ep-idtype').value;
+  const idNum   = document.getElementById('ep-idnum').value.trim();
+
+  if (!phone) { toast('Phone number is required', 'error'); return; }
+
+  try {
+    // Find this client's customer record by email
+    const customers = await api('/customers?search=');
+    const me = customers.find(c => c.email === _user.email) ||
+               customers.find(c => c.name  === _user.name);
+
+    if (!me) {
+      toast('Customer record not found. Contact admin.', 'error');
+      return;
+    }
+
+    // PUT updated data to /customers/:id
+    await api(`/customers/${me.id}`, 'PUT', {
+      name:            me.name,
+      phone:           phone,
+      email:           me.email,
+      address:         address,
+      id_proof_type:   idType   || me.id_proof_type,
+      id_proof_number: idNum    || me.id_proof_number
+    });
+
+    // Update localStorage
+    const updated = {
+      ..._user,
+      phone, address,
+      id_proof_type:   idType,
+      id_proof_number: idNum
+    };
+    localStorage.setItem('rentflow_user', JSON.stringify(updated));
+
+    toast('Profile updated successfully! ✅', 'success');
+    closeModal('modal-edit-profile');
+    loadProfile();  // refresh display
+  } catch(e) {
+    toast('Failed to save. Is Flask running?', 'error');
+  }
 }
 
 // ── CUSTOMERS ──
@@ -827,7 +1184,7 @@ async function loadRentals(search) {
     const data = await api(`/rentals?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
     const tbody = document.getElementById('rentals-tbody');
 
-    // Filter by logged-in client's name if role is client
+    // Client sees only their own rentals
     let filtered = data;
     if (_role === 'client') {
       filtered = data.filter(r => r.customer === _user.name);
@@ -1108,11 +1465,28 @@ async function loadReports() {
 async function populateSelects() {
   try {
     const d = await api('/selects');
-    const custOpts = d.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    ['r-customer'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<option value="">Select...</option>${custOpts}`;
-    });
+    const custSelect = document.getElementById('r-customer');
+    if (custSelect) {
+        if (_role === 'client') {
+            // Find this client's record and show only their name
+            const me = d.customers.find(c => c.name === _user.name);
+            if (me) {
+                custSelect.innerHTML = `<option value="${me.id}">${me.name}</option>`;
+                custSelect.disabled = true;
+                custSelect.style.opacity = '0.7';
+                custSelect.style.cursor  = 'not-allowed';
+            } else {
+                custSelect.innerHTML = `<option value="">Not registered as customer — contact admin</option>`;
+                custSelect.disabled = true;
+            }
+        } else {
+            const custOpts = d.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            custSelect.innerHTML = `<option value="">Select...</option>${custOpts}`;
+            custSelect.disabled = false;
+            custSelect.style.opacity = '';
+            custSelect.style.cursor  = '';
+        }
+    }
     _eqData = {};
     const eqAll = await api('/equipment?search=');
     eqAll.forEach(e => { _eqData[e.id] = e; });
@@ -1138,9 +1512,18 @@ window.openModal = function(id) {
     const nextWeek = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
     document.getElementById('r-end').value = nextWeek;
     document.getElementById('rental-calc').style.display = 'none';
-    ['r-customer','r-equipment','r-notes'].forEach(id2 => document.getElementById(id2).value='');
-  }
-  document.getElementById(id).classList.add('open');
+    ['r-equipment','r-notes'].forEach(id2 => document.getElementById(id2).value='');
+
+    // Client: lock customer dropdown to their own name only
+    if (_role === 'client') {
+        const custSelect = document.getElementById('r-customer');
+        custSelect.innerHTML = '';  // clear all options
+        // We'll populate after selects load — handled in populateSelects
+    } else {
+        document.getElementById('r-customer').value = '';
+    }
+}
+document.getElementById(id).classList.add('open');
 };
 
 // ── INIT ──

@@ -88,21 +88,9 @@
       <h1 class="hero-title">Manage rentals <span>smarter</span> and faster</h1>
       <p class="hero-desc">RentFlow gives you full control over your equipment inventory, customer management, payments, and analytics — all in one place.</p>
       <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-icon">🔧</div>
-          <div class="stat-value">100%</div>
-          <div class="stat-label">Equipment Tracked</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💳</div>
-          <div class="stat-value">Live</div>
-          <div class="stat-label">Payment Records</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📊</div>
-          <div class="stat-value">Real-time</div>
-          <div class="stat-label">Analytics</div>
-        </div>
+        <div class="stat-card"><div class="stat-icon">🔧</div><div class="stat-value">100%</div><div class="stat-label">Equipment Tracked</div></div>
+        <div class="stat-card"><div class="stat-icon">💳</div><div class="stat-value">Live</div><div class="stat-label">Payment Records</div></div>
+        <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">Real-time</div><div class="stat-label">Analytics</div></div>
       </div>
     </div>
   </div>
@@ -114,19 +102,25 @@
         <h2 id="main-title">Welcome back</h2>
         <p id="main-subtitle">Sign in to your RentFlow account</p>
       </div>
+
       <div class="role-toggle">
-        <button class="role-btn active" id="btn-admin" onclick="switchRole('admin')">🔐 Admin</button>
-        <button class="role-btn" id="btn-client" onclick="switchRole('client')">👤 Client</button>
+        <button class="role-btn active" id="btn-admin"  onclick="switchRole('admin')">🔐 Admin</button>
+        <button class="role-btn"        id="btn-client" onclick="switchRole('client')">👤 Client</button>
       </div>
+
       <div class="admin-note" id="admin-note">
         🛡️ Admin access grants full system control. Use your admin credentials.
       </div>
+
       <div class="tab-switch" id="tab-switch">
-        <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Sign In</button>
-        <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+        <button class="tab-btn active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn"        id="tab-signup" onclick="switchTab('signup')">Create Account</button>
       </div>
-      <div class="error-msg" id="error-msg"></div>
+
+      <div class="error-msg"   id="error-msg"></div>
       <div class="success-msg" id="success-msg"></div>
+
+      <!-- ── LOGIN FORM ── -->
       <div class="form-section active" id="section-login">
         <div class="form-group">
           <label>Email Address</label>
@@ -144,43 +138,60 @@
           </div>
         </div>
         <div class="remember-row">
-          <label class="remember"><input type="checkbox"/> Remember me</label>
+          <label class="remember"><input type="checkbox" id="remember-me"/> Remember me</label>
         </div>
         <button class="btn-main" onclick="handleLogin()" id="login-btn">Sign In</button>
       </div>
+
+      <!-- ── SIGNUP FORM (client only) ── -->
       <div class="form-section" id="section-signup">
         <div class="two-col">
           <div class="form-group">
-            <label>First Name</label>
+            <label>First Name *</label>
             <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="signup-fname" placeholder="John"/></div>
           </div>
           <div class="form-group">
-            <label>Last Name</label>
+            <label>Last Name *</label>
             <div class="input-wrap"><span class="input-icon">👤</span><input type="text" id="signup-lname" placeholder="Doe"/></div>
           </div>
         </div>
         <div class="form-group">
-          <label>Email Address</label>
+          <label>Email Address *</label>
           <div class="input-wrap"><span class="input-icon">✉</span><input type="email" id="signup-email" placeholder="you@email.com"/></div>
         </div>
         <div class="form-group">
-          <label>Phone Number</label>
+          <label>Phone Number *</label>
           <div class="input-wrap"><span class="input-icon">📞</span><input type="tel" id="signup-phone" placeholder="+91 XXXXX XXXXX"/></div>
         </div>
         <div class="form-group">
-          <label>Password</label>
-          <div class="input-wrap"><span class="input-icon">🔒</span><input type="password" id="signup-password" placeholder="Create a password (min 6 chars)"/><button class="eye-btn" onclick="togglePass('signup-password','eye2')" id="eye2">👁</button></div>
+          <label>Password *</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-password" placeholder="Create a password (min 6 chars)"/>
+            <button class="eye-btn" onclick="togglePass('signup-password','eye2')" id="eye2">👁</button>
+          </div>
         </div>
         <div class="form-group">
-          <label>Confirm Password</label>
-          <div class="input-wrap"><span class="input-icon">🔒</span><input type="password" id="signup-confirm" placeholder="Repeat your password"/><button class="eye-btn" onclick="togglePass('signup-confirm','eye3')" id="eye3">👁</button></div>
+          <label>Confirm Password *</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="signup-confirm" placeholder="Repeat your password"/>
+            <button class="eye-btn" onclick="togglePass('signup-confirm','eye3')" id="eye3">👁</button>
+          </div>
         </div>
+
+        <!-- info note -->
+        <div style="background:rgba(52,211,153,0.07);border:1px solid rgba(52,211,153,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:#6ee7b7;margin-bottom:14px;">
+          ℹ️ You can add your address and ID proof later from your Profile page.
+        </div>
+
         <button class="btn-main" onclick="handleSignup()" id="signup-btn">Create Account</button>
         <button class="btn-secondary" onclick="switchTab('login')">← Back to Sign In</button>
       </div>
+
       <div class="divider" id="help-divider">or</div>
-      <div style="text-align:center; font-size:13px; color: var(--text2);">
-        Need help? Contact <a href="mailto:support@rentflow.com" style="color:var(--accent2); text-decoration:none;">support@rentflow.com</a>
+      <div style="text-align:center;font-size:13px;color:var(--text2);">
+        Need help? Contact <a href="mailto:support@rentflow.com" style="color:var(--accent2);text-decoration:none;">support@rentflow.com</a>
       </div>
     </div>
   </div>
@@ -191,7 +202,7 @@
 
     function switchRole(role) {
       currentRole = role;
-      document.getElementById('btn-admin').classList.toggle('active', role === 'admin');
+      document.getElementById('btn-admin').classList.toggle('active',  role === 'admin');
       document.getElementById('btn-client').classList.toggle('active', role === 'client');
       document.getElementById('admin-note').classList.toggle('hidden', role !== 'admin');
       const ts = document.getElementById('tab-switch');
@@ -199,26 +210,26 @@
       hideMessages();
       if (role === 'admin') {
         switchTab('login');
-        document.getElementById('main-title').textContent = 'Welcome back';
+        document.getElementById('main-title').textContent    = 'Welcome back';
         document.getElementById('main-subtitle').textContent = 'Sign in to your RentFlow account';
       } else {
-        document.getElementById('main-title').textContent = 'Client Portal';
+        document.getElementById('main-title').textContent    = 'Client Portal';
         document.getElementById('main-subtitle').textContent = 'Sign in or create a new account';
       }
     }
 
     function switchTab(tab) {
       currentTab = tab;
-      document.getElementById('section-login').classList.toggle('active', tab === 'login');
+      document.getElementById('section-login').classList.toggle('active',  tab === 'login');
       document.getElementById('section-signup').classList.toggle('active', tab === 'signup');
-      document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
       document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
       document.getElementById('help-divider').style.display = tab === 'signup' ? 'none' : 'flex';
       hideMessages();
     }
 
     function togglePass(id, btnId) {
-      const inp = document.getElementById(id);
+      const inp  = document.getElementById(id);
       const show = inp.type === 'password';
       inp.type = show ? 'text' : 'password';
       document.getElementById(btnId).textContent = show ? '🙈' : '👁';
@@ -228,22 +239,17 @@
       document.getElementById('error-msg').classList.remove('show');
       document.getElementById('success-msg').classList.remove('show');
     }
-    function showError(msg) {
-      const e = document.getElementById('error-msg');
-      e.textContent = msg; e.classList.add('show');
-    }
-    function showSuccess(msg) {
-      const e = document.getElementById('success-msg');
-      e.textContent = msg; e.classList.add('show');
-    }
+    function showError(msg)   { const e = document.getElementById('error-msg');   e.textContent = msg; e.classList.add('show'); }
+    function showSuccess(msg) { const e = document.getElementById('success-msg'); e.textContent = msg; e.classList.add('show'); }
 
+    // ── LOGIN ──
     function handleLogin() {
       const email    = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
       const btn      = document.getElementById('login-btn');
       hideMessages();
       if (!email || !password) { showError('Please enter your email and password.'); return; }
-      btn.textContent = 'Signing in...'; btn.disabled = true;
+      btn.textContent = 'Signing in…'; btn.disabled = true;
 
       fetch('http://127.0.0.1:5000/login', {
         method: 'POST',
@@ -253,6 +259,7 @@
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {
+          // ── store the FULL user object (Flask must return all fields) ──
           localStorage.setItem('rentflow_user', JSON.stringify(data.data));
           window.location.href = 'index.html';
         } else {
@@ -266,6 +273,9 @@
       });
     }
 
+    // ── SIGNUP (client) ──
+    // Sends: name, email, phone, password, role='client'
+    // Flask /register must also INSERT into customers table
     function handleSignup() {
       const fname    = document.getElementById('signup-fname').value.trim();
       const lname    = document.getElementById('signup-lname').value.trim();
@@ -275,20 +285,31 @@
       const confirm  = document.getElementById('signup-confirm').value;
       const btn      = document.getElementById('signup-btn');
       hideMessages();
-      if (!fname || !lname || !email || !phone || !password || !confirm) { showError('Please fill in all fields.'); return; }
+
+      if (!fname || !lname || !email || !phone || !password || !confirm) {
+        showError('Please fill in all required fields.'); return;
+      }
       if (password !== confirm) { showError('Passwords do not match.'); return; }
       if (password.length < 6)  { showError('Password must be at least 6 characters.'); return; }
-      btn.textContent = 'Creating account...'; btn.disabled = true;
+
+      btn.textContent = 'Creating account…'; btn.disabled = true;
 
       fetch('http://127.0.0.1:5000/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fname + ' ' + lname, email, phone, password, role: 'client' })
+        body: JSON.stringify({
+          name:     fname + ' ' + lname,
+          email,
+          phone,          // ← phone now explicitly sent
+          password,
+          role: 'client'
+          // address, id_proof_type, id_proof_number left blank — client fills in profile
+        })
       })
       .then(r => r.json())
       .then(data => {
         if (data.status === 'ok') {
-          showSuccess('Account created successfully! You can now sign in. ✅');
+          showSuccess('Account created! You can now sign in. ✅');
           setTimeout(() => switchTab('login'), 2000);
         } else {
           showError(data.message || 'Registration failed. Email may already exist.');
