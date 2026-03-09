@@ -1,46 +1,105 @@
-from flask import Flask, jsonify, request,send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flask_caching import Cache
+from mysql.connector.pooling import MySQLConnectionPool
 import mysql.connector
-from config import DB_CONFIG
+import threading
+import time
 
-
+# ─────────────────────────────────────────────
+#  APP SETUP
+# ─────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-@app.route("/frontend/<path:filename>")
-def frontend(filename):
-    return send_from_directory("../frontend", filename)
-
+cache = Cache(app, config={
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 30
+})
 
 # ─────────────────────────────────────────────
-#  Helper
+#  DATABASE POOL (replaces slow per-request connect)
 # ─────────────────────────────────────────────
+DB_CONFIG = {
+    'host':     'maglev.proxy.rlwy.net',
+    'port':     50013,
+    'user':     'root',
+    'password': 'qaWhtljpmFJDWNUIFZlSyxdvFweRSvSd',
+    'database': 'rentflow_db',
+    'charset':  'utf8mb4',
+}
+
+pool = MySQLConnectionPool(
+    pool_name="rentflow",
+    pool_size=10,
+    connection_timeout=30,
+    **DB_CONFIG
+)
+
 def get_db():
-    conn = mysql.connector.connect(**DB_CONFIG)
-    cursor = conn.cursor(dictionary=True)
-    return conn, cursor
+    for attempt in range(3):
+        try:
+            conn = pool.get_connection()
+            cur  = conn.cursor(dictionary=True)
+            return conn, cur
+        except Exception as e:
+            if attempt < 2:
+                time.sleep(1)
+            else:
+                raise e
 
+# ─────────────────────────────────────────────
+#  KEEP-ALIVE (prevents Railway cold starts)
+# ─────────────────────────────────────────────
+def keep_alive():
+    time.sleep(60)  # wait for app to fully start
+    while True:
+        try:
+            conn, cur = get_db()
+            cur.execute("SELECT 1")
+            cur.close(); conn.close()
+        except:
+            pass
+        time.sleep(300)  # ping every 5 minutes
+
+threading.Thread(target=keep_alive, daemon=True).start()
+
+# ─────────────────────────────────────────────
+#  HELPERS
+# ─────────────────────────────────────────────
 def ok(data=None, msg="success"):
     return jsonify({"status": "ok", "message": msg, "data": data})
 
 def err(msg, code=400):
     return jsonify({"status": "error", "message": msg}), code
 
+def dates_to_str(rows, keys):
+    for r in rows:
+        for k in keys:
+            if r.get(k): r[k] = str(r[k])
+    return rows
 
 # ─────────────────────────────────────────────
-#  HOME
+#  STATIC / HEALTH
 # ─────────────────────────────────────────────
+@app.route("/frontend/<path:filename>")
+def frontend(filename):
+    return send_from_directory("../frontend", filename)
+
 @app.route("/")
 def home():
     return "RentFlow Backend Running ✅"
 
+@app.route("/health")
+def health():
+    return {"status": "ok"}, 200
 
 # ─────────────────────────────────────────────
 #  AUTH
 # ─────────────────────────────────────────────
 @app.route("/login", methods=["POST"])
 def login():
-    d = request.json
+    d        = request.json
     email    = d.get("email", "").strip()
     password = d.get("password", "")
     role     = d.get("role", "")
@@ -59,11 +118,10 @@ def login():
                 "email": user["email"],
                 "role":  user["role"],
             }
-            # For clients, also fetch phone/address/id_proof from customers table
             if user["role"] == "client":
                 cur.execute("""
                     SELECT phone, address, id_proof_type, id_proof_number, created_at
-                    FROM customers WHERE email = %s LIMIT 1
+                    FROM customers WHERE email=%s LIMIT 1
                 """, (email,))
                 customer = cur.fetchone()
                 if customer:
@@ -88,7 +146,6 @@ def register():
             VALUES (%s, %s, %s, 'client')
         """, (d["name"], d["email"], d["password"]))
 
-        # Auto-create customer record so client appears in admin's list
         cur.execute("""
             INSERT IGNORE INTO customers (name, phone, email)
             VALUES (%s, %s, %s)
@@ -102,22 +159,31 @@ def register():
         cur.close(); conn.close()
 
 # ─────────────────────────────────────────────
-#  DASHBOARD
+#  DASHBOARD (cached 20s — runs many queries)
 # ─────────────────────────────────────────────
 @app.route("/dashboard")
+@cache.cached(timeout=20)
 def dashboard():
     conn, cur = get_db()
     try:
-        cur.execute("SELECT COUNT(*) AS total FROM equipment")
-        total_eq = cur.fetchone()["total"]
+        # Batch counts in one query
+        cur.execute("""
+            SELECT
+                COUNT(*) AS total_equipment,
+                SUM(status='Available') AS available_equipment
+            FROM equipment
+        """)
+        eq = cur.fetchone()
 
-        cur.execute("SELECT COUNT(*) AS avail FROM equipment WHERE status='Available'")
-        avail_eq = cur.fetchone()["avail"]
+        cur.execute("""
+            SELECT
+                SUM(status='Active')  AS active_rentals,
+                SUM(status='Overdue') AS overdue_rentals
+            FROM rentals
+        """)
+        rn = cur.fetchone()
 
-        cur.execute("SELECT COUNT(*) AS active FROM rentals WHERE status='Active'")
-        active_r = cur.fetchone()["active"]
-
-        # Auto-update overdue
+        # Auto-update overdue in background (non-blocking)
         cur.execute("""
             UPDATE rentals SET status='Overdue'
             WHERE status='Active'
@@ -126,10 +192,6 @@ def dashboard():
         """)
         conn.commit()
 
-        cur.execute("SELECT COUNT(*) AS overdue_count FROM rentals WHERE status='Overdue'")
-        overdue_r = cur.fetchone()["overdue_count"]
-
-        # Recent rentals
         cur.execute("""
             SELECT c.name AS customer, e.name AS equipment,
                    r.status, r.expected_return_date
@@ -139,18 +201,18 @@ def dashboard():
             ORDER BY r.id DESC LIMIT 5
         """)
         recent_rentals = cur.fetchall()
+        dates_to_str(recent_rentals, ["expected_return_date"])
 
-        # Pending items
         cur.execute("""
             SELECT c.name, 'Deposit Refund' AS type, d.amount_paid AS amount
             FROM deposits d
-            JOIN rentals r ON d.rental_id = r.id
+            JOIN rentals r  ON d.rental_id = r.id
             JOIN customers c ON r.customer_id = c.id
             WHERE d.refund_status = 'Pending'
             UNION ALL
             SELECT c.name, 'Late Fee', lf.total_fee
             FROM late_fees lf
-            JOIN rentals r ON lf.rental_id = r.id
+            JOIN rentals r  ON lf.rental_id = r.id
             JOIN customers c ON r.customer_id = c.id
             WHERE lf.payment_status = 'Unpaid'
             LIMIT 6
@@ -158,35 +220,39 @@ def dashboard():
         pending = cur.fetchall()
 
         return ok({
-            "total_equipment": total_eq,
-            "available_equipment": avail_eq,
-            "active_rentals": active_r,
-            "overdue_rentals": overdue_r,
-            "recent_rentals": recent_rentals,
-            "pending_items": pending
+            "total_equipment":     eq["total_equipment"],
+            "available_equipment": eq["available_equipment"],
+            "active_rentals":      rn["active_rentals"],
+            "overdue_rentals":     rn["overdue_rentals"],
+            "recent_rentals":      recent_rentals,
+            "pending_items":       pending
         })
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  CUSTOMERS
 # ─────────────────────────────────────────────
 @app.route("/customers")
+@cache.cached(timeout=15, query_string=True)
 def get_customers():
     search = request.args.get("search", "")
-    q = f"%{search}%"
+    q      = f"%{search}%"
     conn, cur = get_db()
     try:
         cur.execute("""
             SELECT c.id, c.name, c.phone, c.email, c.address,
                    c.id_proof_type, c.id_proof_number, c.created_at,
-                   (SELECT COUNT(*) FROM rentals WHERE customer_id = c.id) AS rent_count
+                   COUNT(r.id) AS rent_count
             FROM customers c
+            LEFT JOIN rentals r ON r.customer_id = c.id
             WHERE c.name LIKE %s OR c.phone LIKE %s OR c.email LIKE %s
+            GROUP BY c.id
             ORDER BY c.id DESC
         """, (q, q, q))
-        return ok(cur.fetchall())
+        rows = cur.fetchall()
+        dates_to_str(rows, ["created_at"])
+        return ok(rows)
     finally:
         cur.close(); conn.close()
 
@@ -203,6 +269,7 @@ def add_customer():
         """, (d["name"], d["phone"], d.get("email",""), d.get("address",""),
               d.get("id_proof_type",""), d.get("id_proof_number","")))
         conn.commit()
+        cache.clear()
         return ok({"id": cur.lastrowid}, "Customer added")
     except mysql.connector.IntegrityError as e:
         return err(str(e))
@@ -221,6 +288,7 @@ def update_customer(cid):
         """, (d["name"], d["phone"], d.get("email",""), d.get("address",""),
               d.get("id_proof_type",""), d.get("id_proof_number",""), cid))
         conn.commit()
+        cache.clear()
         return ok(msg="Customer updated")
     finally:
         cur.close(); conn.close()
@@ -234,20 +302,21 @@ def delete_customer(cid):
             return err("Cannot delete: customer has rental history")
         cur.execute("DELETE FROM customers WHERE id=%s", (cid,))
         conn.commit()
+        cache.clear()
         return ok(msg="Customer deleted")
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  EQUIPMENT
 # ─────────────────────────────────────────────
 @app.route("/equipment")
+@cache.cached(timeout=15, query_string=True)
 def get_equipment():
     search = request.args.get("search", "")
     cat    = request.args.get("category", "")
     status = request.args.get("status", "")
-    q = f"%{search}%"
+    q      = f"%{search}%"
     conn, cur = get_db()
     try:
         sql = """
@@ -261,7 +330,9 @@ def get_equipment():
         if status: sql += " AND status=%s";    params.append(status)
         sql += " ORDER BY id DESC"
         cur.execute(sql, params)
-        return ok(cur.fetchall())
+        rows = cur.fetchall()
+        dates_to_str(rows, ["created_at"])
+        return ok(rows)
     finally:
         cur.close(); conn.close()
 
@@ -279,9 +350,10 @@ def add_equipment():
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (d["name"], d["category"], d.get("brand",""), d.get("model",""),
               d.get("serial_number") or None, d["daily_rate"],
-              d.get("deposit_amount", 0), d.get("condition","Good"),
+              d.get("deposit_amount",0), d.get("condition","Good"),
               d.get("description","")))
         conn.commit()
+        cache.clear()
         return ok({"id": cur.lastrowid}, "Equipment added")
     except mysql.connector.IntegrityError as e:
         return err(str(e))
@@ -303,6 +375,7 @@ def update_equipment(eid):
               d.get("deposit_amount",0), d.get("condition","Good"),
               d.get("description",""), eid))
         conn.commit()
+        cache.clear()
         return ok(msg="Equipment updated")
     finally:
         cur.close(); conn.close()
@@ -318,49 +391,73 @@ def delete_equipment(eid):
             return err("Cannot delete: equipment is currently rented")
         cur.execute("DELETE FROM equipment WHERE id=%s", (eid,))
         conn.commit()
+        cache.clear()
         return ok(msg="Equipment deleted")
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  RENTALS
 # ─────────────────────────────────────────────
 @app.route("/rentals")
+@cache.cached(timeout=15, query_string=True)
 def get_rentals():
     search = request.args.get("search", "")
     status = request.args.get("status", "")
-    q = f"%{search}%"
+    q      = f"%{search}%"
     conn, cur = get_db()
     try:
-        # Auto-update overdue
+        # 1. Auto-mark overdue
         cur.execute("""
             UPDATE rentals SET status='Overdue'
             WHERE status='Active'
               AND expected_return_date < CURDATE()
               AND actual_return_date IS NULL
         """)
+
+        # 2. Auto-create late_fee records for overdue rentals that don't have one yet
+        cur.execute("""
+            INSERT IGNORE INTO late_fees (rental_id, days_late, fee_per_day, total_fee)
+            SELECT r.id,
+                   DATEDIFF(CURDATE(), r.expected_return_date),
+                   500,
+                   DATEDIFF(CURDATE(), r.expected_return_date) * 500
+            FROM rentals r
+            WHERE r.status = 'Overdue'
+              AND r.actual_return_date IS NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM late_fees lf WHERE lf.rental_id = r.id
+              )
+        """)
         conn.commit()
 
+        # 3. Fetch rentals with payment_status:
+        #    "Paid"     — sum of Rental payments >= rental_amount
+        #    "Not Paid" — otherwise
         sql = """
             SELECT r.id, c.name AS customer, e.name AS equipment,
                    r.start_date, r.expected_return_date, r.actual_return_date,
-                   r.rental_amount, r.status, r.notes
+                   r.rental_amount, r.status, r.notes,
+                   COALESCE(SUM(CASE WHEN p.payment_type='Rental' THEN p.amount ELSE 0 END), 0) AS paid_amount,
+                   CASE
+                     WHEN COALESCE(SUM(CASE WHEN p.payment_type='Rental' THEN p.amount ELSE 0 END), 0) >= r.rental_amount
+                     THEN 'Paid'
+                     ELSE 'Not Paid'
+                   END AS payment_status
             FROM rentals r
             JOIN customers c ON r.customer_id = c.id
             JOIN equipment  e ON r.equipment_id = e.id
+            LEFT JOIN payments p ON p.rental_id = r.id
             WHERE (c.name LIKE %s OR e.name LIKE %s)
         """
         params = [q, q]
         if status:
             sql += " AND r.status=%s"; params.append(status)
+        sql += " GROUP BY r.id, c.name, e.name, r.start_date, r.expected_return_date, r.actual_return_date, r.rental_amount, r.status, r.notes"
         sql += " ORDER BY r.id DESC"
         cur.execute(sql, params)
         rows = cur.fetchall()
-        # Convert dates to strings for JSON
-        for r in rows:
-            for k in ("start_date","expected_return_date","actual_return_date"):
-                if r[k]: r[k] = str(r[k])
+        dates_to_str(rows, ["start_date", "expected_return_date", "actual_return_date"])
         return ok(rows)
     finally:
         cur.close(); conn.close()
@@ -373,18 +470,16 @@ def add_rental():
         return err("customer_id, equipment_id, start_date, expected_return_date required")
     conn, cur = get_db()
     try:
-        # Check equipment is available
         cur.execute("SELECT status, daily_rate, deposit_amount FROM equipment WHERE id=%s", (d["equipment_id"],))
         eq = cur.fetchone()
         if not eq: return err("Equipment not found", 404)
         if eq["status"] != "Available":
             return err("Equipment is not available")
 
-        # Calculate rental amount
         from datetime import date
-        start = date.fromisoformat(d["start_date"])
-        end   = date.fromisoformat(d["expected_return_date"])
-        days  = max(1, (end - start).days)
+        start         = date.fromisoformat(d["start_date"])
+        end           = date.fromisoformat(d["expected_return_date"])
+        days          = max(1, (end - start).days)
         rental_amount = d.get("rental_amount") or round(days * float(eq["daily_rate"]), 2)
 
         cur.execute("""
@@ -397,17 +492,15 @@ def add_rental():
               rental_amount, d.get("notes","")))
         rental_id = cur.lastrowid
 
-        # Mark equipment as Rented
         cur.execute("UPDATE equipment SET status='Rented' WHERE id=%s", (d["equipment_id"],))
 
-        # Create deposit record
         deposit_amt = float(eq["deposit_amount"] or 0)
         if deposit_amt > 0:
-            cur.execute("""
-                INSERT INTO deposits (rental_id, amount_paid) VALUES (%s,%s)
-            """, (rental_id, deposit_amt))
+            cur.execute("INSERT INTO deposits (rental_id, amount_paid) VALUES (%s,%s)",
+                        (rental_id, deposit_amt))
 
         conn.commit()
+        cache.clear()
         return ok({"id": rental_id, "rental_amount": rental_amount,
                    "deposit_amount": deposit_amt}, "Rental created")
     finally:
@@ -419,8 +512,7 @@ def process_return(rid):
     conn, cur = get_db()
     try:
         cur.execute("""
-            SELECT r.expected_return_date, r.equipment_id,
-                   e.deposit_amount
+            SELECT r.expected_return_date, r.equipment_id, e.deposit_amount
             FROM rentals r JOIN equipment e ON r.equipment_id=e.id
             WHERE r.id=%s
         """, (rid,))
@@ -432,23 +524,20 @@ def process_return(rid):
         exp_date    = row["expected_return_date"]
         repair_cost = float(d.get("repair_cost", 0))
         condition   = d.get("condition", "Good")
-
-        days_late = max(0, (ret_date - exp_date).days)
+        days_late   = max(0, (ret_date - exp_date).days)
         fee_per_day = 500.0
-        late_fee  = days_late * fee_per_day
-        deposit   = float(row["deposit_amount"] or 0)
-        refund    = max(0, deposit - repair_cost - late_fee)
+        late_fee    = days_late * fee_per_day
+        deposit     = float(row["deposit_amount"] or 0)
+        refund      = max(0, deposit - repair_cost - late_fee)
 
-        # Update rental
         new_eq_status = "Maintenance" if (condition == "Damaged" or repair_cost > 0) else "Available"
+
         cur.execute("""
             UPDATE rentals SET status='Returned', actual_return_date=%s, return_condition=%s
             WHERE id=%s
         """, (ret_date, condition, rid))
-
         cur.execute("UPDATE equipment SET status=%s, `condition`=%s WHERE id=%s",
                     (new_eq_status, condition, row["equipment_id"]))
-
         cur.execute("""
             UPDATE deposits SET damage_deduction=%s, late_fee_deduction=%s, refund_amount=%s
             WHERE rental_id=%s
@@ -467,24 +556,25 @@ def process_return(rid):
             """, (rid, row["equipment_id"], d["damage_description"], repair_cost))
 
         conn.commit()
+        cache.clear()
         return ok({
-            "days_late": days_late,
-            "late_fee": late_fee,
-            "repair_cost": repair_cost,
+            "days_late":      days_late,
+            "late_fee":       late_fee,
+            "repair_cost":    repair_cost,
             "deposit_refund": refund
         }, "Return processed")
     finally:
         cur.close(); conn.close()
 
-
 # ─────────────────────────────────────────────
 #  PAYMENTS
 # ─────────────────────────────────────────────
 @app.route("/payments")
+@cache.cached(timeout=15, query_string=True)
 def get_payments():
-    search     = request.args.get("search", "")
-    pay_type   = request.args.get("type", "")
-    q = f"%{search}%"
+    search   = request.args.get("search", "")
+    pay_type = request.args.get("type", "")
+    q        = f"%{search}%"
     conn, cur = get_db()
     try:
         sql = """
@@ -499,8 +589,7 @@ def get_payments():
         sql += " ORDER BY p.id DESC"
         cur.execute(sql, params)
         rows = cur.fetchall()
-        for r in rows:
-            if r["payment_date"]: r["payment_date"] = str(r["payment_date"])
+        dates_to_str(rows, ["payment_date"])
         return ok(rows)
     finally:
         cur.close(); conn.close()
@@ -520,15 +609,16 @@ def add_payment():
         if d.get("payment_type") == "Late Fee":
             cur.execute("UPDATE late_fees SET payment_status='Paid' WHERE rental_id=%s", (d["rental_id"],))
         conn.commit()
+        cache.clear()
         return ok({"id": cur.lastrowid}, "Payment recorded")
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  DEPOSITS
 # ─────────────────────────────────────────────
 @app.route("/deposits")
+@cache.cached(timeout=15)
 def get_deposits():
     conn, cur = get_db()
     try:
@@ -537,13 +627,12 @@ def get_deposits():
                    d.amount_paid, d.damage_deduction, d.late_fee_deduction,
                    d.refund_amount, d.refund_status, d.refund_date
             FROM deposits d
-            JOIN rentals r ON d.rental_id = r.id
+            JOIN rentals r  ON d.rental_id = r.id
             JOIN customers c ON r.customer_id = c.id
             ORDER BY d.id DESC
         """)
         rows = cur.fetchall()
-        for r in rows:
-            if r["refund_date"]: r["refund_date"] = str(r["refund_date"])
+        dates_to_str(rows, ["refund_date"])
         return ok(rows)
     finally:
         cur.close(); conn.close()
@@ -557,15 +646,16 @@ def process_refund(did):
             WHERE id=%s
         """, (did,))
         conn.commit()
+        cache.clear()
         return ok(msg="Refund processed")
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  LATE FEES
 # ─────────────────────────────────────────────
 @app.route("/late_fees")
+@cache.cached(timeout=15)
 def get_late_fees():
     conn, cur = get_db()
     try:
@@ -573,7 +663,7 @@ def get_late_fees():
             SELECT lf.id, lf.rental_id, c.name AS customer,
                    lf.days_late, lf.fee_per_day, lf.total_fee, lf.payment_status
             FROM late_fees lf
-            JOIN rentals r ON lf.rental_id = r.id
+            JOIN rentals r  ON lf.rental_id = r.id
             JOIN customers c ON r.customer_id = c.id
             ORDER BY lf.id DESC
         """)
@@ -587,15 +677,16 @@ def pay_late_fee(lid):
     try:
         cur.execute("UPDATE late_fees SET payment_status='Paid' WHERE id=%s", (lid,))
         conn.commit()
+        cache.clear()
         return ok(msg="Late fee marked paid")
     finally:
         cur.close(); conn.close()
-
 
 # ─────────────────────────────────────────────
 #  DAMAGE REPORTS
 # ─────────────────────────────────────────────
 @app.route("/damages")
+@cache.cached(timeout=15)
 def get_damages():
     conn, cur = get_db()
     try:
@@ -607,8 +698,7 @@ def get_damages():
             ORDER BY dr.id DESC
         """)
         rows = cur.fetchall()
-        for r in rows:
-            if r["reported_at"]: r["reported_at"] = str(r["reported_at"])
+        dates_to_str(rows, ["reported_at"])
         return ok(rows)
     finally:
         cur.close(); conn.close()
@@ -628,29 +718,29 @@ def add_damage():
         if d.get("status") != "Repaired":
             cur.execute("UPDATE equipment SET status='Maintenance' WHERE id=%s", (d["equipment_id"],))
         conn.commit()
+        cache.clear()
         return ok({"id": cur.lastrowid}, "Damage report submitted")
     finally:
         cur.close(); conn.close()
 
-
 # ─────────────────────────────────────────────
-#  REPORTS
+#  REPORTS (cached longer — heavy query)
 # ─────────────────────────────────────────────
 @app.route("/reports")
+@cache.cached(timeout=60)
 def get_reports():
     conn, cur = get_db()
     try:
         cur.execute("SELECT COALESCE(SUM(amount),0) AS revenue FROM payments WHERE payment_type='Rental'")
         revenue = float(cur.fetchone()["revenue"])
 
-        cur.execute("SELECT COUNT(*) AS c FROM customers")
-        customers = cur.fetchone()["c"]
-
-        cur.execute("SELECT COUNT(*) AS c FROM rentals")
-        rentals = cur.fetchone()["c"]
-
-        cur.execute("SELECT COUNT(*) AS c FROM damage_reports")
-        damages = cur.fetchone()["c"]
+        cur.execute("""
+            SELECT
+                (SELECT COUNT(*) FROM customers) AS customers,
+                (SELECT COUNT(*) FROM rentals)   AS rentals,
+                (SELECT COUNT(*) FROM damage_reports) AS damages
+        """)
+        counts = cur.fetchone()
 
         cur.execute("""
             SELECT category,
@@ -671,21 +761,21 @@ def get_reports():
         overdue = cur.fetchall()
 
         return ok({
-            "revenue": revenue,
-            "customers": customers,
-            "rentals": rentals,
-            "damages": damages,
+            "revenue":    revenue,
+            "customers":  counts["customers"],
+            "rentals":    counts["rentals"],
+            "damages":    counts["damages"],
             "categories": categories,
-            "overdue": overdue
+            "overdue":    overdue
         })
     finally:
         cur.close(); conn.close()
 
-
 # ─────────────────────────────────────────────
-#  SELECTS (for dropdown population)
+#  SELECTS (cached — rarely changes)
 # ─────────────────────────────────────────────
 @app.route("/selects")
+@cache.cached(timeout=30)
 def get_selects():
     conn, cur = get_db()
     try:
@@ -708,10 +798,10 @@ def get_selects():
         rentals = cur.fetchall()
 
         return ok({
-            "customers": customers,
+            "customers":          customers,
             "available_equipment": available_equipment,
-            "all_equipment": all_equipment,
-            "rentals": rentals
+            "all_equipment":      all_equipment,
+            "rentals":            rentals
         })
     finally:
         cur.close(); conn.close()

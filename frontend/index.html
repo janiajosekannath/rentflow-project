@@ -203,7 +203,7 @@
           <span class="badge badge-blue" id="client-rental-count">0 rentals</span>
         </div>
         <table>
-          <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due Date</th><th>Amount</th><th>Status</th></tr></thead>
+          <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due Date</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
           <tbody id="client-dash-rentals"></tbody>
         </table>
       </div>
@@ -274,7 +274,7 @@
           </select>
         </div>
       </div>
-      <table><thead><tr><th>ID</th><th>Customer</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+      <table><thead><tr><th>ID</th><th>Customer</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody id="rentals-tbody"></tbody></table>
     </div>
   </div>
@@ -868,9 +868,12 @@ async function loadDashboard() {
             <td style="font-family:'DM Mono',monospace;font-size:12px">${r.start_date}</td>
             <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
             <td class="amount">₹${Number(r.rental_amount).toLocaleString()}</td>
+            <td>${r.payment_status === 'Paid'
+              ? '<span class="badge badge-green">✅ Paid</span>'
+              : '<span class="badge badge-red">❌ Not Paid</span>'}</td>
             <td>${statusBadge(r.status)}</td>
           </tr>`).join('')
-        : '<tr class="empty-row"><td colspan="6">No rentals yet</td></tr>';
+        : '<tr class="empty-row"><td colspan="7">No rentals yet</td></tr>';
 
       // My late fees table
       const ltbody = document.getElementById('client-dash-latefees');
@@ -975,9 +978,12 @@ async function loadProfile() {
           <td style="font-family:'DM Mono',monospace;font-size:12px">${r.start_date}</td>
           <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
           <td class="amount">₹${Number(r.rental_amount).toLocaleString()}</td>
+          <td>${r.payment_status === 'Paid'
+            ? '<span class="badge badge-green">✅ Paid</span>'
+            : '<span class="badge badge-red">❌ Not Paid</span>'}</td>
           <td>${statusBadge(r.status)}</td>
         </tr>`).join('')
-      : '<tr class="empty-row"><td colspan="6">No rental history yet</td></tr>';
+      : '<tr class="empty-row"><td colspan="7">No rental history yet</td></tr>';
   } catch(e) {}
 }
 
@@ -1198,12 +1204,15 @@ async function loadRentals(search) {
           <td style="font-family:'DM Mono',monospace;font-size:12px">${r.start_date}</td>
           <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
           <td class="amount">₹${Number(r.rental_amount).toLocaleString()}</td>
+          <td>${r.payment_status === 'Paid'
+            ? '<span class="badge badge-green">✅ Paid</span>'
+            : `<span class="badge badge-red">❌ Not Paid</span>`}</td>
           <td>${statusBadge(r.status)}</td>
           <td>${r.status !== 'Returned'
             ? `<button class="btn btn-secondary btn-sm" onclick="openReturnModal(${r.id})">Return</button>`
             : '<span style="color:var(--text3);font-size:12px">Returned</span>'}</td>
         </tr>`).join('')
-      : '<tr class="empty-row"><td colspan="8">No rentals found</td></tr>';
+      : '<tr class="empty-row"><td colspan="9">No rentals found</td></tr>';
   } catch(e) {}
 }
 
