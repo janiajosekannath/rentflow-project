@@ -6,7 +6,6 @@
 <title>RentFlow — Equipment Rental System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<!-- NO sql.js — we use MySQL via Flask -->
 <style>
   :root {
     --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a26;
@@ -18,8 +17,6 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
-
-  /* SIDEBAR */
   .sidebar { position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100; }
   .logo { padding:24px 20px 20px; border-bottom:1px solid var(--border); }
   .logo-title { font-family:'Syne',sans-serif;font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.5px; }
@@ -32,19 +29,15 @@
   .nav-btn.active { background:rgba(108,99,255,0.15);color:var(--accent); }
   .nav-btn .icon { font-size:16px;width:20px;text-align:center; }
   .sidebar-footer { padding:16px 20px;border-top:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;color:var(--text3); }
-
-  /* MAIN */
+  .logout-btn { display:flex;align-items:center;gap:8px;width:calc(100% - 32px);margin:0 16px 12px;padding:9px 12px;background:rgba(255,77,106,0.1);border:1px solid rgba(255,77,106,0.2);border-radius:var(--radius2);color:var(--danger);cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;font-weight:500;transition:all 0.15s; }
+  .logout-btn:hover { background:rgba(255,77,106,0.2); }
   .main { margin-left:240px;padding:32px;min-height:100vh; }
   .page { display:none; }
   .page.active { display:block;animation:fadeIn 0.2s ease; }
   @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-
-  /* HEADERS */
   .page-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:28px; }
   .page-title { font-family:'Syne',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.5px; }
   .page-subtitle { color:var(--text2);font-size:13px;margin-top:4px; }
-
-  /* STATS */
   .stats-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px; }
   .stat-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden; }
   .stat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px; }
@@ -55,8 +48,6 @@
   .stat-icon { font-size:28px;margin-bottom:10px; }
   .stat-value { font-family:'Syne',sans-serif;font-size:32px;font-weight:800; }
   .stat-label { color:var(--text2);font-size:12px;margin-top:4px; }
-
-  /* TABLES */
   .table-wrapper { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
   .table-toolbar { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px; }
   .search-box { display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:8px 14px;flex:1;max-width:320px; }
@@ -69,16 +60,12 @@
   tbody td { padding:13px 16px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle; }
   tbody tr:last-child td { border-bottom:none; }
   .empty-row td { text-align:center;color:var(--text3);padding:40px;font-style:italic; }
-
-  /* BADGES */
   .badge { display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;font-family:'DM Mono',monospace; }
   .badge-green { background:rgba(0,212,170,0.15);color:var(--success); }
   .badge-red { background:rgba(255,77,106,0.15);color:var(--danger); }
   .badge-yellow { background:rgba(255,190,69,0.15);color:var(--warning); }
   .badge-blue { background:rgba(108,99,255,0.15);color:var(--accent); }
   .badge-gray { background:rgba(90,90,112,0.2);color:var(--text2); }
-
-  /* BUTTONS */
   .btn { display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:var(--radius2);border:none;cursor:pointer;font-size:13px;font-family:'Inter',sans-serif;font-weight:500;transition:all 0.15s; }
   .btn-primary { background:var(--accent);color:white; }
   .btn-primary:hover { background:#7c74ff;transform:translateY(-1px); }
@@ -87,8 +74,6 @@
   .btn-danger { background:rgba(255,77,106,0.15);color:var(--danger); }
   .btn-danger:hover { background:rgba(255,77,106,0.25); }
   .btn-sm { padding:5px 12px;font-size:12px; }
-
-  /* MODAL */
   .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px); }
   .modal-overlay.open { display:flex; }
   .modal { background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;animation:modalIn 0.2s ease; }
@@ -98,8 +83,6 @@
   .modal-close { background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px; }
   .modal-close:hover { color:var(--text); }
   .modal-body { padding:20px 24px 24px; }
-
-  /* FORMS */
   .form-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px; }
   .form-group { display:flex;flex-direction:column;gap:6px; }
   .form-group.full { grid-column:1/-1; }
@@ -109,47 +92,37 @@
   .form-group select option { background:var(--bg2); }
   .form-group textarea { resize:vertical;min-height:80px; }
   .form-actions { display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:20px;border-top:1px solid var(--border); }
-
-  /* DASHBOARD */
   .dashboard-grid { display:grid;grid-template-columns:1fr 1fr;gap:20px; }
   .section-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius); }
   .section-card-header { padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center; }
   .section-card-title { font-family:'Syne',sans-serif;font-size:15px;font-weight:600; }
-
-  /* FILTER BAR */
   .filter-bar { display:flex;gap:10px;flex-wrap:wrap; }
   .filter-select { background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:8px 12px;color:var(--text2);font-size:12.5px;font-family:'DM Mono',monospace;outline:none;cursor:pointer; }
   .filter-select:focus { border-color:var(--accent);color:var(--text); }
-
-  /* TOAST */
   .toast-container { position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px; }
   .toast { background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius2);padding:14px 18px;font-size:13.5px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.4);animation:toastIn 0.3s ease;display:flex;align-items:center;gap:10px;max-width:320px; }
   @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:none} }
   .toast.success { border-left:3px solid var(--success); }
   .toast.error { border-left:3px solid var(--danger); }
   .toast.info { border-left:3px solid var(--accent); }
-
-  /* DETAIL BOX */
   .detail-box { background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;margin-bottom:16px; }
   .detail-row { display:flex;justify-content:space-between;padding:6px 0;font-size:13.5px; }
   .detail-row:not(:last-child) { border-bottom:1px solid rgba(255,255,255,0.04); }
   .detail-label { color:var(--text2); }
   .detail-value { font-weight:500; }
-
   tr.overdue td { color:var(--danger) !important; }
   .amount { font-family:'DM Mono',monospace; }
-
+  .profile-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:500px; }
+  .profile-avatar { width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:20px; }
+  .profile-name { font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px; }
+  .profile-role { font-size:12px;color:var(--text2);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px; }
+  .profile-info { display:flex;flex-direction:column;gap:12px; }
+  .profile-row { display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px; }
+  .profile-row:last-child { border-bottom:none; }
   ::-webkit-scrollbar { width:6px;height:6px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border2);border-radius:3px; }
-
-  /* SQL Console */
-  #sql-result table { font-family:'DM Mono',monospace;font-size:12px; }
-
-  @media(max-width:900px) {
-    .stats-grid { grid-template-columns:1fr 1fr; }
-    .dashboard-grid { grid-template-columns:1fr; }
-  }
+  @media(max-width:900px) { .stats-grid { grid-template-columns:1fr 1fr; } .dashboard-grid { grid-column:1; } }
 </style>
 </head>
 <body>
@@ -158,31 +131,12 @@
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-title">RentFlow</div>
-    <div class="logo-sub">DBMS Project · Rental System</div>
+    <div class="logo-sub" id="role-label">DBMS Project · Rental System</div>
   </div>
-  <nav class="nav">
-    <div class="nav-section">
-      <div class="nav-label">Overview</div>
-      <button class="nav-btn active" onclick="showPage('dashboard', this)"><span class="icon">⬛</span> Dashboard</button>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Core</div>
-      <button class="nav-btn" onclick="showPage('customers', this)"><span class="icon">👥</span> Customers</button>
-      <button class="nav-btn" onclick="showPage('equipment', this)"><span class="icon">🔧</span> Equipment</button>
-      <button class="nav-btn" onclick="showPage('rentals', this)"><span class="icon">📋</span> Rentals</button>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Finance</div>
-      <button class="nav-btn" onclick="showPage('payments', this)"><span class="icon">💳</span> Payments</button>
-      <button class="nav-btn" onclick="showPage('deposits', this)"><span class="icon">🔒</span> Deposits</button>
-      <button class="nav-btn" onclick="showPage('latefees', this)"><span class="icon">⏰</span> Late Fees</button>
-    </div>
-    <div class="nav-section">
-      <div class="nav-label">Reports</div>
-      <button class="nav-btn" onclick="showPage('damages', this)"><span class="icon">⚠️</span> Damage Reports</button>
-      <button class="nav-btn" onclick="showPage('reports', this)"><span class="icon">📊</span> Analytics</button>
-    </div>
+  <nav class="nav" id="sidebar-nav">
+    <!-- Filled by JS based on role -->
   </nav>
+  <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
   <div class="sidebar-footer" id="db-status">v1.0 · MySQL + Flask · 7 Tables</div>
 </aside>
 
@@ -193,8 +147,8 @@
   <div id="page-dashboard" class="page active">
     <div class="page-header">
       <div>
-        <div class="page-title">Dashboard</div>
-        <div class="page-subtitle">Equipment Rental Management System</div>
+        <div class="page-title" id="dash-title">Dashboard</div>
+        <div class="page-subtitle" id="dash-subtitle">Equipment Rental Management System</div>
       </div>
       <button class="btn btn-secondary" onclick="loadDashboard()">↻ Refresh</button>
     </div>
@@ -204,7 +158,8 @@
       <div class="stat-card pink"><div class="stat-icon">📋</div><div class="stat-value" id="s-active">—</div><div class="stat-label">Active Rentals</div></div>
       <div class="stat-card orange"><div class="stat-icon">⏰</div><div class="stat-value" id="s-overdue">—</div><div class="stat-label">Overdue Returns</div></div>
     </div>
-    <div class="dashboard-grid">
+    <!-- Admin only tables -->
+    <div class="dashboard-grid" id="admin-dash-tables">
       <div class="section-card">
         <div class="section-card-header"><div class="section-card-title">Recent Rentals</div></div>
         <table><thead><tr><th>Customer</th><th>Equipment</th><th>Status</th><th>Due Date</th></tr></thead>
@@ -218,7 +173,7 @@
     </div>
   </div>
 
-  <!-- CUSTOMERS -->
+  <!-- CUSTOMERS (admin only) -->
   <div id="page-customers" class="page">
     <div class="page-header">
       <div><div class="page-title">Customers</div><div class="page-subtitle">Manage customer profiles and rental history</div></div>
@@ -236,8 +191,8 @@
   <!-- EQUIPMENT -->
   <div id="page-equipment" class="page">
     <div class="page-header">
-      <div><div class="page-title">Equipment</div><div class="page-subtitle">Equipment catalog with status and condition tracking</div></div>
-      <button class="btn btn-primary" onclick="openModal('modal-equipment')">＋ Add Equipment</button>
+      <div><div class="page-title">View Items</div><div class="page-subtitle">Browse available equipment for rent</div></div>
+      <button class="btn btn-primary admin-only-elem" onclick="openModal('modal-equipment')">＋ Add Equipment</button>
     </div>
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -253,7 +208,7 @@
           </select>
         </div>
       </div>
-      <table><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Brand/Model</th><th>Rate/Day</th><th>Status</th><th>Condition</th><th>Actions</th></tr></thead>
+      <table><thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Brand/Model</th><th>Rate/Day</th><th>Status</th><th>Condition</th><th id="eq-actions-header">Actions</th></tr></thead>
       <tbody id="equipment-tbody"></tbody></table>
     </div>
   </div>
@@ -261,7 +216,7 @@
   <!-- RENTALS -->
   <div id="page-rentals" class="page">
     <div class="page-header">
-      <div><div class="page-title">Rentals</div><div class="page-subtitle">Manage equipment rentals, returns, and status</div></div>
+      <div><div class="page-title">Rent Items</div><div class="page-subtitle">Manage equipment rentals, returns and payments</div></div>
       <button class="btn btn-primary" onclick="openModal('modal-rental')">＋ New Rental</button>
     </div>
     <div class="table-wrapper">
@@ -282,7 +237,7 @@
   <div id="page-payments" class="page">
     <div class="page-header">
       <div><div class="page-title">Payments</div><div class="page-subtitle">All payment records and transaction history</div></div>
-      <button class="btn btn-primary" onclick="openModal('modal-payment')">＋ Record Payment</button>
+      <button class="btn btn-primary admin-only-elem" onclick="openModal('modal-payment')">＋ Record Payment</button>
     </div>
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -299,7 +254,7 @@
     </div>
   </div>
 
-  <!-- DEPOSITS -->
+  <!-- DEPOSITS (admin only) -->
   <div id="page-deposits" class="page">
     <div class="page-header">
       <div><div class="page-title">Deposits</div><div class="page-subtitle">Security deposit tracking and refund management</div></div>
@@ -310,7 +265,7 @@
     </div>
   </div>
 
-  <!-- LATE FEES -->
+  <!-- LATE FEES (admin only) -->
   <div id="page-latefees" class="page">
     <div class="page-header">
       <div><div class="page-title">Late Fees</div><div class="page-subtitle">Overdue rental fees and payment tracking</div></div>
@@ -321,7 +276,7 @@
     </div>
   </div>
 
-  <!-- DAMAGES -->
+  <!-- DAMAGES (admin only) -->
   <div id="page-damages" class="page">
     <div class="page-header">
       <div><div class="page-title">Damage Reports</div><div class="page-subtitle">Equipment damage tracking and repair cost management</div></div>
@@ -333,7 +288,7 @@
     </div>
   </div>
 
-  <!-- REPORTS / ANALYTICS -->
+  <!-- REPORTS (admin only) -->
   <div id="page-reports" class="page">
     <div class="page-header">
       <div><div class="page-title">Analytics & Reports</div><div class="page-subtitle">Business insights and performance metrics</div></div>
@@ -358,11 +313,26 @@
     </div>
   </div>
 
+  <!-- PROFILE PAGE (client) -->
+  <div id="page-profile" class="page">
+    <div class="page-header">
+      <div><div class="page-title">My Profile</div><div class="page-subtitle">Your account information</div></div>
+    </div>
+    <div class="profile-card">
+      <div class="profile-avatar">👤</div>
+      <div class="profile-name" id="profile-name">—</div>
+      <div class="profile-role" id="profile-role">—</div>
+      <div class="profile-info">
+        <div class="profile-row"><span style="color:var(--text2)">Email</span><span id="profile-email">—</span></div>
+        <div class="profile-row"><span style="color:var(--text2)">Role</span><span id="profile-role2">—</span></div>
+        <div class="profile-row"><span style="color:var(--text2)">Account Type</span><span class="badge badge-blue">Client</span></div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
-<!-- ══════════════ MODALS ══════════════ -->
-
-<!-- Customer Modal -->
+<!-- MODALS -->
 <div class="modal-overlay" id="modal-customer">
   <div class="modal">
     <div class="modal-header">
@@ -389,7 +359,6 @@
   </div>
 </div>
 
-<!-- Equipment Modal -->
 <div class="modal-overlay" id="modal-equipment">
   <div class="modal">
     <div class="modal-header">
@@ -421,7 +390,6 @@
   </div>
 </div>
 
-<!-- Rental Modal -->
 <div class="modal-overlay" id="modal-rental">
   <div class="modal">
     <div class="modal-header">
@@ -458,7 +426,6 @@
   </div>
 </div>
 
-<!-- Return Modal -->
 <div class="modal-overlay" id="modal-return">
   <div class="modal">
     <div class="modal-header">
@@ -484,7 +451,6 @@
   </div>
 </div>
 
-<!-- Payment Modal -->
 <div class="modal-overlay" id="modal-payment">
   <div class="modal">
     <div class="modal-header">
@@ -511,7 +477,6 @@
   </div>
 </div>
 
-<!-- Damage Modal -->
 <div class="modal-overlay" id="modal-damage">
   <div class="modal">
     <div class="modal-header">
@@ -536,24 +501,76 @@
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-// ══════════════════════════════════════════════════════
-//  CONFIGURATION — change if Flask runs on different port
-// ══════════════════════════════════════════════════════
 const API = 'http://127.0.0.1:5000';
 
-// ══════════════════════════════════════════════════════
-//  UTILITIES
-// ══════════════════════════════════════════════════════
+// ── AUTH ──
+const _userRaw = localStorage.getItem('rentflow_user');
+if (!_userRaw) { window.location.href = 'login.html'; }
+const _user = JSON.parse(_userRaw || '{}');
+const _role = _user.role || 'client';
+
+function handleLogout() {
+  localStorage.removeItem('rentflow_user');
+  window.location.href = 'login.html';
+}
+
+// ── BUILD SIDEBAR ──
+function buildSidebar() {
+  const nav = document.getElementById('sidebar-nav');
+  document.getElementById('role-label').textContent = _role === 'admin' ? 'Admin Panel' : 'Client Portal';
+
+  if (_role === 'admin') {
+    nav.innerHTML = `
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <button class="nav-btn active" onclick="showPage('dashboard',this)"><span class="icon">⬛</span> Dashboard</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Core</div>
+        <button class="nav-btn" onclick="showPage('customers',this)"><span class="icon">👥</span> Customers</button>
+        <button class="nav-btn" onclick="showPage('equipment',this)"><span class="icon">🔧</span> Equipment</button>
+        <button class="nav-btn" onclick="showPage('rentals',this)"><span class="icon">📋</span> Rentals</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Finance</div>
+        <button class="nav-btn" onclick="showPage('payments',this)"><span class="icon">💳</span> Payments</button>
+        <button class="nav-btn" onclick="showPage('deposits',this)"><span class="icon">🔒</span> Deposits</button>
+        <button class="nav-btn" onclick="showPage('latefees',this)"><span class="icon">⏰</span> Late Fees</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Reports</div>
+        <button class="nav-btn" onclick="showPage('damages',this)"><span class="icon">⚠️</span> Damage Reports</button>
+        <button class="nav-btn" onclick="showPage('reports',this)"><span class="icon">📊</span> Analytics</button>
+      </div>`;
+  } else {
+    nav.innerHTML = `
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <button class="nav-btn active" onclick="showPage('dashboard',this)"><span class="icon">⬛</span> Dashboard</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Client Menu</div>
+        <button class="nav-btn" onclick="showPage('equipment',this)"><span class="icon">🔧</span> View Items</button>
+        <button class="nav-btn" onclick="showPage('rentals',this)"><span class="icon">📋</span> Rent Items</button>
+        <button class="nav-btn" onclick="showPage('profile',this)"><span class="icon">👤</span> Profile Page</button>
+      </div>`;
+    // Hide admin-only elements
+    document.querySelectorAll('.admin-only-elem').forEach(el => el.style.display = 'none');
+    document.getElementById('admin-dash-tables').style.display = 'none';
+    document.getElementById('eq-actions-header').style.display = 'none';
+    // Update dashboard text
+    document.getElementById('dash-title').textContent = 'Welcome, ' + (_user.name || 'Client');
+    document.getElementById('dash-subtitle').textContent = 'Here\'s your rental overview';
+  }
+}
+
+// ── UTILITIES ──
 async function api(path, method='GET', body=null) {
   try {
-    const opts = {
-      method,
-      headers: { 'Content-Type': 'application/json' }
-    };
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(API + path, opts);
     const json = await res.json();
@@ -603,9 +620,7 @@ function damageStatusBadge(s) {
   return `<span class="badge ${m[s]||'badge-gray'}">${s}</span>`;
 }
 
-// ══════════════════════════════════════════════════════
-//  NAVIGATION
-// ══════════════════════════════════════════════════════
+// ── NAVIGATION ──
 function showPage(page, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -620,14 +635,13 @@ function showPage(page, btn) {
     deposits: loadDeposits,
     latefees: loadLateFees,
     damages: loadDamages,
-    reports: loadReports
+    reports: loadReports,
+    profile: loadProfile
   };
   if (loaders[page]) loaders[page]();
 }
 
-// ══════════════════════════════════════════════════════
-//  DASHBOARD
-// ══════════════════════════════════════════════════════
+// ── DASHBOARD ──
 async function loadDashboard() {
   try {
     const d = await api('/dashboard');
@@ -635,25 +649,24 @@ async function loadDashboard() {
     document.getElementById('s-avail').textContent = d.available_equipment;
     document.getElementById('s-active').textContent = d.active_rentals;
     document.getElementById('s-overdue').textContent = d.overdue_rentals;
-
-    const tbody = document.getElementById('dash-rentals');
-    tbody.innerHTML = d.recent_rentals.length
-      ? d.recent_rentals.map(r => `<tr>
-          <td>${r.customer}</td><td>${r.equipment}</td>
-          <td>${statusBadge(r.status)}</td>
-          <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
-        </tr>`).join('')
-      : '<tr class="empty-row"><td colspan="4">No rentals yet</td></tr>';
-
-    const tbody2 = document.getElementById('dash-payments');
-    tbody2.innerHTML = d.pending_items.length
-      ? d.pending_items.map(p => `<tr>
-          <td>${p.name}</td>
-          <td><span class="badge badge-yellow">${p.type}</span></td>
-          <td class="amount">₹${Number(p.amount).toLocaleString()}</td>
-        </tr>`).join('')
-      : '<tr class="empty-row"><td colspan="3">No pending items</td></tr>';
-
+    if (_role === 'admin') {
+      const tbody = document.getElementById('dash-rentals');
+      tbody.innerHTML = d.recent_rentals.length
+        ? d.recent_rentals.map(r => `<tr>
+            <td>${r.customer}</td><td>${r.equipment}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td style="font-family:'DM Mono',monospace;font-size:12px">${r.expected_return_date}</td>
+          </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="4">No rentals yet</td></tr>';
+      const tbody2 = document.getElementById('dash-payments');
+      tbody2.innerHTML = d.pending_items.length
+        ? d.pending_items.map(p => `<tr>
+            <td>${p.name}</td>
+            <td><span class="badge badge-yellow">${p.type}</span></td>
+            <td class="amount">₹${Number(p.amount).toLocaleString()}</td>
+          </tr>`).join('')
+        : '<tr class="empty-row"><td colspan="3">No pending items</td></tr>';
+    }
     document.getElementById('db-status').textContent = '✅ MySQL Connected · 7 Tables';
     document.getElementById('db-status').style.color = 'var(--success)';
   } catch(e) {
@@ -662,9 +675,15 @@ async function loadDashboard() {
   }
 }
 
-// ══════════════════════════════════════════════════════
-//  CUSTOMERS
-// ══════════════════════════════════════════════════════
+// ── PROFILE ──
+function loadProfile() {
+  document.getElementById('profile-name').textContent = _user.name || '—';
+  document.getElementById('profile-role').textContent = (_user.role || '—').toUpperCase();
+  document.getElementById('profile-email').textContent = _user.email || '—';
+  document.getElementById('profile-role2').textContent = _user.role || '—';
+}
+
+// ── CUSTOMERS ──
 async function loadCustomers(search='') {
   try {
     const data = await api(`/customers?search=${encodeURIComponent(search)}`);
@@ -698,16 +717,9 @@ async function saveCustomer() {
   };
   if (!body.name || !body.phone) { toast('Name and phone are required', 'error'); return; }
   try {
-    if (id) {
-      await api(`/customers/${id}`, 'PUT', body);
-      toast('Customer updated!', 'success');
-    } else {
-      await api('/customers', 'POST', body);
-      toast('Customer added!', 'success');
-    }
-    closeModal('modal-customer');
-    resetCustomerForm();
-    loadCustomers();
+    if (id) { await api(`/customers/${id}`, 'PUT', body); toast('Customer updated!', 'success'); }
+    else { await api('/customers', 'POST', body); toast('Customer added!', 'success'); }
+    closeModal('modal-customer'); resetCustomerForm(); loadCustomers();
   } catch(e) {}
 }
 
@@ -731,16 +743,10 @@ function resetCustomerForm() {
 async function deleteCustomer(id, rentCount) {
   if (rentCount > 0) { toast('Cannot delete: customer has rental history', 'error'); return; }
   if (!confirm('Delete this customer?')) return;
-  try {
-    await api(`/customers/${id}`, 'DELETE');
-    toast('Customer deleted', 'info');
-    loadCustomers();
-  } catch(e) {}
+  try { await api(`/customers/${id}`, 'DELETE'); toast('Customer deleted', 'info'); loadCustomers(); } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  EQUIPMENT
-// ══════════════════════════════════════════════════════
+// ── EQUIPMENT ──
 async function loadEquipment(search) {
   search = search ?? document.getElementById('eq-search').value;
   const cat = document.getElementById('eq-cat-filter').value;
@@ -757,10 +763,10 @@ async function loadEquipment(search) {
           <td class="amount">₹${Number(e.daily_rate).toLocaleString()}/day</td>
           <td>${eqStatusBadge(e.status)}</td>
           <td>${condBadge(e.condition)}</td>
-          <td>
-            <button class="btn btn-secondary btn-sm" onclick='editEquipment(${JSON.stringify(e)})'>Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteEquipment(${e.id}, '${e.status}')">Delete</button>
-          </td>
+          <td>${_role === 'admin'
+            ? `<button class="btn btn-secondary btn-sm" onclick='editEquipment(${JSON.stringify(e)})'>Edit</button>
+               <button class="btn btn-danger btn-sm" onclick="deleteEquipment(${e.id}, '${e.status}')">Delete</button>`
+            : '—'}</td>
         </tr>`).join('')
       : '<tr class="empty-row"><td colspan="8">No equipment found</td></tr>';
   } catch(e) {}
@@ -781,16 +787,9 @@ async function saveEquipment() {
   };
   if (!body.name || !body.category || !body.daily_rate) { toast('Name, category, and daily rate are required', 'error'); return; }
   try {
-    if (id) {
-      await api(`/equipment/${id}`, 'PUT', body);
-      toast('Equipment updated!', 'success');
-    } else {
-      await api('/equipment', 'POST', body);
-      toast('Equipment added!', 'success');
-    }
-    closeModal('modal-equipment');
-    resetEquipmentForm();
-    loadEquipment('');
+    if (id) { await api(`/equipment/${id}`, 'PUT', body); toast('Equipment updated!', 'success'); }
+    else { await api('/equipment', 'POST', body); toast('Equipment added!', 'success'); }
+    closeModal('modal-equipment'); resetEquipmentForm(); loadEquipment('');
   } catch(e) {}
 }
 
@@ -817,24 +816,25 @@ function resetEquipmentForm() {
 async function deleteEquipment(id, status) {
   if (status === 'Rented') { toast('Cannot delete: equipment is currently rented', 'error'); return; }
   if (!confirm('Delete this equipment?')) return;
-  try {
-    await api(`/equipment/${id}`, 'DELETE');
-    toast('Equipment deleted', 'info');
-    loadEquipment('');
-  } catch(e) {}
+  try { await api(`/equipment/${id}`, 'DELETE'); toast('Equipment deleted', 'info'); loadEquipment(''); } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  RENTALS
-// ══════════════════════════════════════════════════════
+// ── RENTALS ──
 async function loadRentals(search) {
   search = search ?? document.getElementById('rental-search').value;
   const status = document.getElementById('rental-status-filter').value;
   try {
     const data = await api(`/rentals?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
     const tbody = document.getElementById('rentals-tbody');
-    tbody.innerHTML = data.length
-      ? data.map(r => `<tr class="${r.status==='Overdue'?'overdue':''}">
+
+    // Filter by logged-in client's name if role is client
+    let filtered = data;
+    if (_role === 'client') {
+      filtered = data.filter(r => r.customer === _user.name);
+    }
+
+    tbody.innerHTML = filtered.length
+      ? filtered.map(r => `<tr class="${r.status==='Overdue'?'overdue':''}">
           <td style="color:var(--text3);font-family:'DM Mono',monospace">#${r.id}</td>
           <td style="font-weight:500">${r.customer}</td>
           <td>${r.equipment}</td>
@@ -850,7 +850,6 @@ async function loadRentals(search) {
   } catch(e) {}
 }
 
-// Rental calc — stores equipment data from selects
 let _eqData = {};
 
 async function updateRentalCalc() {
@@ -859,16 +858,13 @@ async function updateRentalCalc() {
   const end = document.getElementById('r-end').value;
   const calcDiv = document.getElementById('rental-calc');
   if (!eqId || !start || !end) { calcDiv.style.display='none'; return; }
-
   const eq = _eqData[eqId];
   if (!eq) { calcDiv.style.display='none'; return; }
-
   const days = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24)));
   const rate = parseFloat(eq.daily_rate);
   const deposit = parseFloat(eq.deposit_amount)||0;
   const rentalAmt = days * rate;
   const total = rentalAmt + deposit;
-
   calcDiv.style.display = 'block';
   document.getElementById('calc-rate').textContent = `₹${rate.toLocaleString()}/day`;
   document.getElementById('calc-days').textContent = `${days} day(s)`;
@@ -884,51 +880,37 @@ async function saveRental() {
   const end = document.getElementById('r-end').value;
   if (!custId || !eqId || !start || !end) { toast('All required fields must be filled', 'error'); return; }
   if (new Date(end) <= new Date(start)) { toast('Return date must be after start date', 'error'); return; }
-
   try {
     const result = await api('/rentals', 'POST', {
-      customer_id: parseInt(custId),
-      equipment_id: parseInt(eqId),
-      start_date: start,
-      expected_return_date: end,
+      customer_id: parseInt(custId), equipment_id: parseInt(eqId),
+      start_date: start, expected_return_date: end,
       pickup_condition: document.getElementById('r-pickup-cond').value,
       notes: document.getElementById('r-notes').value
     });
     toast(`Rental created! Deposit: ₹${Number(result.deposit_amount).toLocaleString()}`, 'success');
-    closeModal('modal-rental');
-    loadRentals();
-    loadDashboard();
+    closeModal('modal-rental'); loadRentals(); loadDashboard();
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  RETURN MODAL
-// ══════════════════════════════════════════════════════
 let currentReturnRentalId = null;
 let currentReturnData = {};
 
 async function openReturnModal(rentalId) {
   currentReturnRentalId = rentalId;
   try {
-    // Fetch rental detail via rentals endpoint and find the one
     const data = await api(`/rentals?search=`);
     const r = data.find(x => x.id === rentalId);
     if (!r) return;
     currentReturnData = r;
-
-    // Get deposit amount from equipment data
     const eqData = await api(`/equipment?search=`);
     const eq = eqData.find(x => x.name === r.equipment) || {};
-
     document.getElementById('return-info').innerHTML = `
       <div class="detail-row"><span class="detail-label">Customer</span><span class="detail-value">${r.customer}</span></div>
       <div class="detail-row"><span class="detail-label">Equipment</span><span class="detail-value">${r.equipment}</span></div>
       <div class="detail-row"><span class="detail-label">Rental Period</span><span class="detail-value" style="font-family:'DM Mono',monospace">${r.start_date} → ${r.expected_return_date}</span></div>
       <div class="detail-row"><span class="detail-label">Rental Amount</span><span class="detail-value amount">₹${Number(r.rental_amount).toLocaleString()}</span></div>
-      <div class="detail-row"><span class="detail-label">Security Deposit</span><span class="detail-value amount">₹${Number(eq.deposit_amount||0).toLocaleString()}</span></div>
-    `;
+      <div class="detail-row"><span class="detail-label">Security Deposit</span><span class="detail-value amount">₹${Number(eq.deposit_amount||0).toLocaleString()}</span></div>`;
     currentReturnData.deposit_amount = eq.deposit_amount || 0;
-
     document.getElementById('ret-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('ret-repair-cost').value = 0;
     document.getElementById('ret-damage-desc').value = '';
@@ -949,21 +931,18 @@ function updateReturnCalc() {
   const deposit = parseFloat(r.deposit_amount||0);
   const totalDeductions = repairCost + lateFee;
   const depositRefund = Math.max(0, deposit - totalDeductions);
-
   document.getElementById('return-calc').innerHTML = `
     <div class="detail-row"><span class="detail-label">Days Late</span><span class="detail-value" style="color:${daysLate>0?'var(--danger)':'var(--success)'}">${daysLate} day(s)</span></div>
     <div class="detail-row"><span class="detail-label">Late Fee (₹500/day)</span><span class="detail-value amount">₹${lateFee.toLocaleString()}</span></div>
     <div class="detail-row"><span class="detail-label">Repair Cost</span><span class="detail-value amount">₹${repairCost.toLocaleString()}</span></div>
     <div class="detail-row"><span class="detail-label">Total Deductions</span><span class="detail-value amount" style="color:var(--danger)">₹${totalDeductions.toLocaleString()}</span></div>
-    <div class="detail-row" style="font-weight:700"><span class="detail-label">Deposit Refund</span><span class="detail-value amount" style="color:var(--success)">₹${depositRefund.toLocaleString()}</span></div>
-  `;
+    <div class="detail-row" style="font-weight:700"><span class="detail-label">Deposit Refund</span><span class="detail-value amount" style="color:var(--success)">₹${depositRefund.toLocaleString()}</span></div>`;
 }
 
 async function processReturn() {
   const id = currentReturnRentalId;
   const retDate = document.getElementById('ret-date').value;
   if (!retDate) { toast('Return date is required', 'error'); return; }
-
   try {
     const result = await api(`/rentals/${id}/return`, 'POST', {
       return_date: retDate,
@@ -972,15 +951,11 @@ async function processReturn() {
       damage_description: document.getElementById('ret-damage-desc').value.trim()
     });
     toast(`Return processed! Refund: ₹${Number(result.deposit_refund).toLocaleString()}`, 'success');
-    closeModal('modal-return');
-    loadRentals();
-    loadDashboard();
+    closeModal('modal-return'); loadRentals(); loadDashboard();
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  PAYMENTS
-// ══════════════════════════════════════════════════════
+// ── PAYMENTS ──
 async function loadPayments(search) {
   search = search ?? document.getElementById('pay-search').value;
   const type = document.getElementById('pay-type-filter').value;
@@ -1014,14 +989,11 @@ async function savePayment() {
       notes: document.getElementById('p-notes').value
     });
     toast('Payment recorded!', 'success');
-    closeModal('modal-payment');
-    loadPayments();
+    closeModal('modal-payment'); loadPayments();
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  DEPOSITS
-// ══════════════════════════════════════════════════════
+// ── DEPOSITS ──
 async function loadDeposits() {
   try {
     const data = await api('/deposits');
@@ -1044,16 +1016,10 @@ async function loadDeposits() {
 }
 
 async function processDepositRefund(id) {
-  try {
-    await api(`/deposits/${id}/refund`, 'POST');
-    toast('Deposit refund processed!', 'success');
-    loadDeposits();
-  } catch(e) {}
+  try { await api(`/deposits/${id}/refund`, 'POST'); toast('Deposit refund processed!', 'success'); loadDeposits(); } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  LATE FEES
-// ══════════════════════════════════════════════════════
+// ── LATE FEES ──
 async function loadLateFees() {
   try {
     const data = await api('/late_fees');
@@ -1066,28 +1032,18 @@ async function loadLateFees() {
           <td style="color:var(--danger);font-weight:600">${lf.days_late} days</td>
           <td class="amount">₹${Number(lf.fee_per_day).toLocaleString()}/day</td>
           <td class="amount" style="color:var(--warning)">₹${Number(lf.total_fee).toLocaleString()}</td>
-          <td>${lf.payment_status==='Paid'
-            ? '<span class="badge badge-green">Paid</span>'
-            : '<span class="badge badge-red">Unpaid</span>'}</td>
-          <td>${lf.payment_status==='Unpaid'
-            ? `<button class="btn btn-secondary btn-sm" onclick="markLateFeesPaid(${lf.id})">Mark Paid</button>`
-            : '—'}</td>
+          <td>${lf.payment_status==='Paid'?'<span class="badge badge-green">Paid</span>':'<span class="badge badge-red">Unpaid</span>'}</td>
+          <td>${lf.payment_status==='Unpaid'?`<button class="btn btn-secondary btn-sm" onclick="markLateFeesPaid(${lf.id})">Mark Paid</button>`:'—'}</td>
         </tr>`).join('')
       : '<tr class="empty-row"><td colspan="8">No late fees recorded</td></tr>';
   } catch(e) {}
 }
 
 async function markLateFeesPaid(id) {
-  try {
-    await api(`/late_fees/${id}/pay`, 'POST');
-    toast('Late fee marked as paid', 'success');
-    loadLateFees();
-  } catch(e) {}
+  try { await api(`/late_fees/${id}/pay`, 'POST'); toast('Late fee marked as paid', 'success'); loadLateFees(); } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  DAMAGE REPORTS
-// ══════════════════════════════════════════════════════
+// ── DAMAGES ──
 async function loadDamages() {
   try {
     const data = await api('/damages');
@@ -1113,21 +1069,16 @@ async function saveDamage() {
   if (!rentalId || !eqId || !desc) { toast('Rental, equipment, and description required', 'error'); return; }
   try {
     await api('/damages', 'POST', {
-      rental_id: parseInt(rentalId),
-      equipment_id: parseInt(eqId),
-      description: desc,
-      repair_cost: parseFloat(document.getElementById('d-cost').value)||0,
+      rental_id: parseInt(rentalId), equipment_id: parseInt(eqId),
+      description: desc, repair_cost: parseFloat(document.getElementById('d-cost').value)||0,
       status: document.getElementById('d-status').value
     });
     toast('Damage report submitted', 'success');
-    closeModal('modal-damage');
-    loadDamages();
+    closeModal('modal-damage'); loadDamages();
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  REPORTS
-// ══════════════════════════════════════════════════════
+// ── REPORTS ──
 async function loadReports() {
   try {
     const d = await api('/reports');
@@ -1135,7 +1086,6 @@ async function loadReports() {
     document.getElementById('r-customers').textContent = d.customers;
     document.getElementById('r-rentals').textContent = d.rentals;
     document.getElementById('r-damages').textContent = d.damages;
-
     const catDiv = document.getElementById('r-categories');
     catDiv.innerHTML = d.categories.map(c => `
       <div style="margin-bottom:14px">
@@ -1146,22 +1096,15 @@ async function loadReports() {
         <div style="background:var(--bg3);border-radius:4px;height:6px">
           <div style="background:var(--accent);border-radius:4px;height:6px;width:${c.total>0?Math.round(c.available/c.total*100):0}%"></div>
         </div>
-      </div>
-    `).join('');
-
+      </div>`).join('');
     const tbody = document.getElementById('r-overdue-table');
     tbody.innerHTML = d.overdue.length
-      ? d.overdue.map(o => `<tr>
-          <td>${o.customer}</td><td>${o.equipment}</td>
-          <td style="color:var(--danger);font-weight:600">${o.days_late} days</td>
-        </tr>`).join('')
+      ? d.overdue.map(o => `<tr><td>${o.customer}</td><td>${o.equipment}</td><td style="color:var(--danger);font-weight:600">${o.days_late} days</td></tr>`).join('')
       : '<tr class="empty-row"><td colspan="3">No overdue rentals 🎉</td></tr>';
   } catch(e) {}
 }
 
-// ══════════════════════════════════════════════════════
-//  POPULATE SELECTS (for modal dropdowns)
-// ══════════════════════════════════════════════════════
+// ── SELECTS ──
 async function populateSelects() {
   try {
     const d = await api('/selects');
@@ -1170,20 +1113,15 @@ async function populateSelects() {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<option value="">Select...</option>${custOpts}`;
     });
-
-    // Store equipment data for rental calc
     _eqData = {};
     const eqAll = await api('/equipment?search=');
     eqAll.forEach(e => { _eqData[e.id] = e; });
-
     const eqOpts = d.available_equipment.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     const rEq = document.getElementById('r-equipment');
     if (rEq) rEq.innerHTML = `<option value="">Select equipment...</option>${eqOpts}`;
-
     const allEqOpts = d.all_equipment.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
     const dEq = document.getElementById('d-equipment');
     if (dEq) dEq.innerHTML = `<option value="">Select...</option>${allEqOpts}`;
-
     const rentalOpts = d.rentals.map(r => `<option value="${r.id}">${r.label}</option>`).join('');
     ['p-rental','d-rental'].forEach(id => {
       const el = document.getElementById(id);
@@ -1192,8 +1130,6 @@ async function populateSelects() {
   } catch(e) {}
 }
 
-// Override openModal for rental defaults
-const _origOpenModal = openModal;
 window.openModal = function(id) {
   populateSelects();
   if (id === 'modal-rental') {
@@ -1207,15 +1143,9 @@ window.openModal = function(id) {
   document.getElementById(id).classList.add('open');
 };
 
-// ══════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════
+// ── INIT ──
+buildSidebar();
 loadDashboard();
-// Redirect to login if not logged in
-const user = localStorage.getItem('rentflow_user');
-if (!user) {
-    window.location.href = 'login.html';
-}
 </script>
 </body>
 </html>
