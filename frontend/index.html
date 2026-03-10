@@ -203,7 +203,7 @@
           <span class="badge badge-blue" id="client-rental-count">0 rentals</span>
         </div>
         <table>
-          <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due Date</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
+          <thead><tr><th>ID</th><th>Equipment</th><th>Start</th><th>Due Date</th><th>Amount</th><th>Payment</th><th>Status</th><th>action</th></tr></thead>
           <tbody id="client-dash-rentals"></tbody>
         </table>
       </div>
@@ -274,7 +274,7 @@
           </select>
         </div>
       </div>
-      <table><thead><tr><th>ID</th><th>Customer</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+      <table><thead><tr><th>ID</th><th>Customer</th><th>Equipment</th><th>Start</th><th>Due</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
       <tbody id="rentals-tbody"></tbody></table>
     </div>
   </div>
@@ -1184,6 +1184,9 @@ async function deleteEquipment(id, status) {
 
 // ── RENTALS ──
 async function loadRentals(search) {
+  // Add this inside loadRentals function at the top
+  document.getElementById('eq-actions-header').style.display = 
+  _role === 'admin' ? '' : 'none';
   search = search ?? document.getElementById('rental-search').value;
   const status = document.getElementById('rental-status-filter').value;
   try {
@@ -1208,9 +1211,9 @@ async function loadRentals(search) {
             ? '<span class="badge badge-green">✅ Paid</span>'
             : `<span class="badge badge-red">❌ Not Paid</span>`}</td>
           <td>${statusBadge(r.status)}</td>
-          <td>${r.status !== 'Returned'
-            ? `<button class="btn btn-secondary btn-sm" onclick="openReturnModal(${r.id})">Return</button>`
-            : '<span style="color:var(--text3);font-size:12px">Returned</span>'}</td>
+          ${_role === 'admin' ? `<td>${r.status !== 'Returned'
+         ? `<button class="btn btn-secondary btn-sm" onclick="openReturnModal(${r.id})">Return</button>`
+         : `<span style="color:var(--text3);font-size:12px">Returned</span>`}</td>` : `<td></td>`}
         </tr>`).join('')
       : '<tr class="empty-row"><td colspan="9">No rentals found</td></tr>';
   } catch(e) {}

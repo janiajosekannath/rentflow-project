@@ -39,7 +39,7 @@ INSERT INTO admins (name, email, password, role)
 VALUES ('Admin User', 'admin@rentflow.com', 'admin123', 'admin');
 
 -- ============================================================
--- TABLE 2: equipment
+-- TABLE 3: equipment
 -- ============================================================
 CREATE TABLE equipment (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,7 +57,7 @@ CREATE TABLE equipment (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLE 3: rentals
+-- TABLE 4: rentals
 -- ============================================================
 CREATE TABLE rentals (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
@@ -80,7 +80,7 @@ CREATE TABLE rentals (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLE 4: deposits
+-- TABLE 5: deposits
 -- ============================================================
 CREATE TABLE deposits (
     id                  INT AUTO_INCREMENT PRIMARY KEY,
@@ -95,7 +95,7 @@ CREATE TABLE deposits (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLE 5: late_fees
+-- TABLE 6: late_fees
 -- ============================================================
 CREATE TABLE late_fees (
     id              INT AUTO_INCREMENT PRIMARY KEY,
@@ -108,7 +108,7 @@ CREATE TABLE late_fees (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLE 6: payments
+-- TABLE 7: payments
 -- ============================================================
 CREATE TABLE payments (
     id              INT AUTO_INCREMENT PRIMARY KEY,
@@ -124,7 +124,7 @@ CREATE TABLE payments (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- TABLE 7: damage_reports
+-- TABLE : damage_reports
 -- ============================================================
 CREATE TABLE damage_reports (
     id           INT AUTO_INCREMENT PRIMARY KEY,
