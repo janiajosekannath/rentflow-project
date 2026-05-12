@@ -22,11 +22,11 @@ cache = Cache(app, config={
 #  DATABASE POOL (replaces slow per-request connect)
 # ─────────────────────────────────────────────
 DB_CONFIG = {
-    'host':     os.environ.get("DB_HOST"),
-    'port':     int(os.environ.get("DB_PORT", 3306)),
-    'user':     os.environ.get("DB_USER"),
-    'password': os.environ.get("DB_PASSWORD"),
-    'database': os.environ.get("DB_NAME"),
+    'host':     os.environ.get("MYSQL_ADDON_HOST"),
+    'port':     int(os.environ.get("MYSQL_ADDON_PORT", 3306)),
+    'user':     os.environ.get("MYSQL_ADDON_USER"),
+    'password': os.environ.get("MYSQL_ADDON_PASSWORD"),
+    'database': os.environ.get("MYSQL_ADDON_DB"),
     'charset':  'utf8mb4',
 }
 
