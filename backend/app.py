@@ -1,13 +1,8 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_caching import Cache
-from mysql.connector.pooling import MySQLConnectionPool
 import mysql.connector
-import threading
-import time
 import os
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 # ─────────────────────────────────────────────
 #  APP SETUP
@@ -21,46 +16,36 @@ cache = Cache(app, config={
 })
 
 # ─────────────────────────────────────────────
-#  DATABASE — one connection per request (no pool)
+#  DATABASE — single persistent connection
+#  ping(reconnect=True) auto-reconnects if dropped
+#  Uses exactly 1 connection → safe on Clever Cloud free tier (limit: 5)
 # ─────────────────────────────────────────────
 DB_CONFIG = {
-    'host':     os.environ.get("MYSQL_ADDON_HOST"),
-    'port':     int(os.environ.get("MYSQL_ADDON_PORT", 3306)),
-    'user':     os.environ.get("MYSQL_ADDON_USER"),
-    'password': os.environ.get("MYSQL_ADDON_PASSWORD"),
-    'database': os.environ.get("MYSQL_ADDON_DB"),
-    'charset':  'utf8mb4',
-    'ssl_ca':            None,
-    'ssl_verify_cert':   False,
+    'host':                os.environ.get("MYSQL_ADDON_HOST"),
+    'port':                int(os.environ.get("MYSQL_ADDON_PORT", 3306)),
+    'user':                os.environ.get("MYSQL_ADDON_USER"),
+    'password':            os.environ.get("MYSQL_ADDON_PASSWORD"),
+    'database':            os.environ.get("MYSQL_ADDON_DB"),
+    'charset':             'utf8mb4',
+    'ssl_ca':              None,
+    'ssl_verify_cert':     False,
     'ssl_verify_identity': False,
 }
 
-def get_db():
-    for attempt in range(3):
-        try:
-            conn = mysql.connector.connect(**DB_CONFIG)
-            cur  = conn.cursor(dictionary=True)
-            return conn, cur
-        except Exception as e:
-            if attempt < 2:
-                time.sleep(1)
-            else:
-                raise e
-# ─────────────────────────────────────────────
-#  KEEP-ALIVE (prevents Railway cold starts)
-# ─────────────────────────────────────────────
-def keep_alive():
-    time.sleep(60)  # wait for app to fully start
-    while True:
-        try:
-            conn, cur = get_db()
-            cur.execute("SELECT 1")
-            cur.close(); conn.close()
-        except:
-            pass
-        time.sleep(300)  # ping every 5 minutes
+_conn = None
 
-threading.Thread(target=keep_alive, daemon=True).start()
+def get_db():
+    global _conn
+    try:
+        if _conn is None or not _conn.is_connected():
+            _conn = mysql.connector.connect(**DB_CONFIG)
+        else:
+            _conn.ping(reconnect=True, attempts=3, delay=1)
+        cur = _conn.cursor(dictionary=True)
+        return _conn, cur
+    except Exception as e:
+        _conn = None
+        raise e
 
 # ─────────────────────────────────────────────
 #  HELPERS
@@ -132,7 +117,7 @@ def login():
         else:
             return err("Invalid email, password, or role", 401)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -154,17 +139,16 @@ def register():
     except mysql.connector.IntegrityError:
         return err("Email already registered")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
-#  DASHBOARD (cached 20s — runs many queries)
+#  DASHBOARD
 # ─────────────────────────────────────────────
 @app.route("/dashboard")
 @cache.cached(timeout=20)
 def dashboard():
     conn, cur = get_db()
     try:
-        # Batch counts in one query
         cur.execute("""
             SELECT
                 COUNT(*) AS total_equipment,
@@ -181,7 +165,6 @@ def dashboard():
         """)
         rn = cur.fetchone()
 
-        # Auto-update overdue in background (non-blocking)
         cur.execute("""
             UPDATE rentals SET status='Overdue'
             WHERE status='Active'
@@ -226,7 +209,7 @@ def dashboard():
             "pending_items":       pending
         })
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  CUSTOMERS
@@ -252,7 +235,7 @@ def get_customers():
         dates_to_str(rows, ["created_at"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/customers", methods=["POST"])
 def add_customer():
@@ -272,7 +255,7 @@ def add_customer():
     except mysql.connector.IntegrityError as e:
         return err(str(e))
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/customers/<int:cid>", methods=["PUT"])
 def update_customer(cid):
@@ -289,7 +272,7 @@ def update_customer(cid):
         cache.clear()
         return ok(msg="Customer updated")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/customers/<int:cid>", methods=["DELETE"])
 def delete_customer(cid):
@@ -303,7 +286,7 @@ def delete_customer(cid):
         cache.clear()
         return ok(msg="Customer deleted")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  EQUIPMENT
@@ -332,7 +315,7 @@ def get_equipment():
         dates_to_str(rows, ["created_at"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/equipment", methods=["POST"])
 def add_equipment():
@@ -356,7 +339,7 @@ def add_equipment():
     except mysql.connector.IntegrityError as e:
         return err(str(e))
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/equipment/<int:eid>", methods=["PUT"])
 def update_equipment(eid):
@@ -376,7 +359,7 @@ def update_equipment(eid):
         cache.clear()
         return ok(msg="Equipment updated")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/equipment/<int:eid>", methods=["DELETE"])
 def delete_equipment(eid):
@@ -392,7 +375,7 @@ def delete_equipment(eid):
         cache.clear()
         return ok(msg="Equipment deleted")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  RENTALS
@@ -405,15 +388,12 @@ def get_rentals():
     q      = f"%{search}%"
     conn, cur = get_db()
     try:
-        # 1. Auto-mark overdue
         cur.execute("""
             UPDATE rentals SET status='Overdue'
             WHERE status='Active'
               AND expected_return_date < CURDATE()
               AND actual_return_date IS NULL
         """)
-
-        # 2. Auto-create late_fee records for overdue rentals that don't have one yet
         cur.execute("""
             INSERT IGNORE INTO late_fees (rental_id, days_late, fee_per_day, total_fee)
             SELECT r.id,
@@ -429,9 +409,6 @@ def get_rentals():
         """)
         conn.commit()
 
-        # 3. Fetch rentals with payment_status:
-        #    "Paid"     — sum of Rental payments >= rental_amount
-        #    "Not Paid" — otherwise
         sql = """
             SELECT r.id, c.name AS customer, e.name AS equipment,
                    r.start_date, r.expected_return_date, r.actual_return_date,
@@ -458,7 +435,7 @@ def get_rentals():
         dates_to_str(rows, ["start_date", "expected_return_date", "actual_return_date"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/rentals", methods=["POST"])
 def add_rental():
@@ -502,7 +479,7 @@ def add_rental():
         return ok({"id": rental_id, "rental_amount": rental_amount,
                    "deposit_amount": deposit_amt}, "Rental created")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/rentals/<int:rid>/return", methods=["POST"])
 def process_return(rid):
@@ -562,7 +539,7 @@ def process_return(rid):
             "deposit_refund": refund
         }, "Return processed")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  PAYMENTS
@@ -590,7 +567,7 @@ def get_payments():
         dates_to_str(rows, ["payment_date"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/payments", methods=["POST"])
 def add_payment():
@@ -610,7 +587,7 @@ def add_payment():
         cache.clear()
         return ok({"id": cur.lastrowid}, "Payment recorded")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  DEPOSITS
@@ -633,7 +610,7 @@ def get_deposits():
         dates_to_str(rows, ["refund_date"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/deposits/<int:did>/refund", methods=["POST"])
 def process_refund(did):
@@ -647,7 +624,7 @@ def process_refund(did):
         cache.clear()
         return ok(msg="Refund processed")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  LATE FEES
@@ -667,7 +644,7 @@ def get_late_fees():
         """)
         return ok(cur.fetchall())
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/late_fees/<int:lid>/pay", methods=["POST"])
 def pay_late_fee(lid):
@@ -678,7 +655,7 @@ def pay_late_fee(lid):
         cache.clear()
         return ok(msg="Late fee marked paid")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
 #  DAMAGE REPORTS
@@ -699,7 +676,7 @@ def get_damages():
         dates_to_str(rows, ["reported_at"])
         return ok(rows)
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 @app.route("/damages", methods=["POST"])
 def add_damage():
@@ -719,10 +696,10 @@ def add_damage():
         cache.clear()
         return ok({"id": cur.lastrowid}, "Damage report submitted")
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
-#  REPORTS (cached longer — heavy query)
+#  REPORTS
 # ─────────────────────────────────────────────
 @app.route("/reports")
 @cache.cached(timeout=60)
@@ -767,10 +744,10 @@ def get_reports():
             "overdue":    overdue
         })
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 # ─────────────────────────────────────────────
-#  SELECTS (cached — rarely changes)
+#  SELECTS
 # ─────────────────────────────────────────────
 @app.route("/selects")
 @cache.cached(timeout=30)
@@ -796,14 +773,15 @@ def get_selects():
         rentals = cur.fetchall()
 
         return ok({
-            "customers":          customers,
+            "customers":           customers,
             "available_equipment": available_equipment,
-            "all_equipment":      all_equipment,
-            "rentals":            rentals
+            "all_equipment":       all_equipment,
+            "rentals":             rentals
         })
     finally:
-        cur.close(); conn.close()
+        cur.close()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
