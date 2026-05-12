@@ -21,7 +21,7 @@ cache = Cache(app, config={
 })
 
 # ─────────────────────────────────────────────
-#  DATABASE POOL (replaces slow per-request connect)
+#  DATABASE POOL
 # ─────────────────────────────────────────────
 DB_CONFIG = {
     'host':     os.environ.get("MYSQL_ADDON_HOST"),
@@ -32,17 +32,20 @@ DB_CONFIG = {
     'charset':  'utf8mb4',
 }
 
-pool = MySQLConnectionPool(
-    pool_name="rentflow",
-    pool_size=3,
-    connection_timeout=30,
-    ssl_ca=None,
-    ssl_verify_cert=False,
-    ssl_verify_identity=False,
-    **DB_CONFIG
-)
+pool = None
 
 def get_db():
+    global pool
+    if pool is None:
+        pool = MySQLConnectionPool(
+            pool_name="rentflow",
+            pool_size=3,
+            connection_timeout=30,
+            ssl_ca=None,
+            ssl_verify_cert=False,
+            ssl_verify_identity=False,
+            **DB_CONFIG
+        )
     for attempt in range(3):
         try:
             conn = pool.get_connection()
