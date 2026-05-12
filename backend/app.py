@@ -5,6 +5,7 @@ from mysql.connector.pooling import MySQLConnectionPool
 import mysql.connector
 import threading
 import time
+import os
 
 # ─────────────────────────────────────────────
 #  APP SETUP
@@ -21,11 +22,11 @@ cache = Cache(app, config={
 #  DATABASE POOL (replaces slow per-request connect)
 # ─────────────────────────────────────────────
 DB_CONFIG = {
-    'host':     'maglev.proxy.rlwy.net',
-    'port':     50013,
-    'user':     'root',
-    'password': 'qaWhtljpmFJDWNUIFZlSyxdvFweRSvSd',
-    'database': 'rentflow_db',
+    'host':     os.environ.get("DB_HOST"),
+    'port':     int(os.environ.get("DB_PORT", 3306)),
+    'user':     os.environ.get("DB_USER"),
+    'password': os.environ.get("DB_PASSWORD"),
+    'database': os.environ.get("DB_NAME"),
     'charset':  'utf8mb4',
 }
 
