@@ -6,6 +6,8 @@ import mysql.connector
 import threading
 import time
 import os
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # ─────────────────────────────────────────────
 #  APP SETUP
