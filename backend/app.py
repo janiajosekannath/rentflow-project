@@ -21,7 +21,7 @@ cache = Cache(app, config={
 })
 
 # ─────────────────────────────────────────────
-#  DATABASE POOL
+#  DATABASE — one connection per request (no pool)
 # ─────────────────────────────────────────────
 DB_CONFIG = {
     'host':     os.environ.get("MYSQL_ADDON_HOST"),
@@ -30,25 +30,15 @@ DB_CONFIG = {
     'password': os.environ.get("MYSQL_ADDON_PASSWORD"),
     'database': os.environ.get("MYSQL_ADDON_DB"),
     'charset':  'utf8mb4',
+    'ssl_ca':            None,
+    'ssl_verify_cert':   False,
+    'ssl_verify_identity': False,
 }
 
-pool = None
-
 def get_db():
-    global pool
-    if pool is None:
-        pool = MySQLConnectionPool(
-            pool_name="rentflow",
-            pool_size=3,
-            connection_timeout=30,
-            ssl_ca=None,
-            ssl_verify_cert=False,
-            ssl_verify_identity=False,
-            **DB_CONFIG
-        )
     for attempt in range(3):
         try:
-            conn = pool.get_connection()
+            conn = mysql.connector.connect(**DB_CONFIG)
             cur  = conn.cursor(dictionary=True)
             return conn, cur
         except Exception as e:
@@ -56,7 +46,6 @@ def get_db():
                 time.sleep(1)
             else:
                 raise e
-
 # ─────────────────────────────────────────────
 #  KEEP-ALIVE (prevents Railway cold starts)
 # ─────────────────────────────────────────────
