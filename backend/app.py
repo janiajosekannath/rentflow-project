@@ -32,7 +32,7 @@ DB_CONFIG = {
 
 pool = MySQLConnectionPool(
     pool_name="rentflow",
-    pool_size=10,
+    pool_size=3,
     connection_timeout=30,
     ssl_ca=None,
     ssl_verify_cert=False,
